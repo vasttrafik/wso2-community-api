@@ -283,22 +283,7 @@ public class TopicsApiServiceImpl extends CommunityApiServiceImpl {
     {
 		try {
 			// Authorize. May throw NotAuthorizedException
-			authorize(authorization);
-			
-			if (topic.getCreatedBy() == null)
-				return responseUtils.badRequest(1203L, null);
-			
-			// Topic can only be updated by an admin or the creator of the topic
-			if (!isAdmin() && !isOwnerOrAdmin(topic.getCreatedBy().getId()))
-				return responseUtils.notAuthorizedError(1104L, null);
-			
-			// If topic is closed, it can not be updated
-			if (topic.getClosedDate() != null)
-				return responseUtils.badRequest(1201L, null);
-			
-			// If topic is deleted, it can not be updated
-			if (topic.getIsDeleted() != null && topic.getIsDeleted())
-				return responseUtils.badRequest(1202L, null);
+			AuthenticatedUser user = authorize(authorization);
 			
 			// Make sure the action parameter is set and valid
 			responseUtils.checkParameter(
@@ -316,7 +301,7 @@ public class TopicsApiServiceImpl extends CommunityApiServiceImpl {
         	
         	if (action.equals("subject")) { // Subject has been updated
         		// TO-DO: Check required attributes
-        		count = topicDAO.updateSubject(topicDTO);
+        		count = topicDAO.updateSubject(user, topicDTO);
         	}
         	else if (action.equals("close")) { // Topic is being closed
         		// TO-DO: Check required attributes

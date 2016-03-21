@@ -3,6 +3,7 @@ package org.vasttrafik.wso2.carbon.community.api.dao;
 import java.sql.SQLException;
 import java.util.List;
 
+import org.vasttrafik.wso2.carbon.common.api.beans.AuthenticatedUser;
 import org.vasttrafik.wso2.carbon.community.api.model.TopicDTO;
 
 /**
@@ -92,7 +93,7 @@ public interface TopicDAO extends TransactionalDAO {
 	 * @param topicDTO
 	 * @return
 	 */
-	public int updateSubject(TopicDTO topicDTO) throws SQLException;
+	public int updateSubject(AuthenticatedUser user, TopicDTO topicDTO) throws SQLException;
 	
     //----------------------------------------------------------------------
 	/**

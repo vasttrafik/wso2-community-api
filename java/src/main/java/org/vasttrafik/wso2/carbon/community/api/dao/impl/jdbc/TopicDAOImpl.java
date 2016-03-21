@@ -10,6 +10,7 @@ import java.util.Map;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.vasttrafik.wso2.carbon.common.api.beans.AuthenticatedUser;
 import org.vasttrafik.wso2.carbon.community.api.dao.TopicDAO;
 import org.vasttrafik.wso2.carbon.community.api.dao.impl.jdbc.commons.GenericDAO;
 import org.vasttrafik.wso2.carbon.community.api.dao.impl.jdbc.utils.MetaData;
@@ -421,11 +422,14 @@ public final class TopicDAOImpl extends GenericDAO<TopicDTO> implements TopicDAO
 	 * @param topicDTO
 	 * @return
 	 */
-	public int updateSubject(TopicDTO topicDTO) throws SQLException {
+	public int updateSubject(AuthenticatedUser user, TopicDTO topicDTO) throws SQLException {
 		int result = 0;
 		
 		try {
-			String sql = "update com_topic set com_subject = ? where com_id = ?";
+			String sql = "update com_topic set com_subject = ? where com_id = ? and com_closed_date is null and com_is_deleted = 0";
+			
+			if (!user.hasRole("community-admin"))
+				sql += " and com_created_by_id = ?";
 			
 			// Get a connection
 			getConnection();
@@ -435,6 +439,9 @@ public final class TopicDAOImpl extends GenericDAO<TopicDTO> implements TopicDAO
 			// Bind the values
 			setValue(ps, 1, topicDTO.getSubject());
 			setValue(ps, 2, topicDTO.getId());
+			
+			if (!user.hasRole("community-admin"))
+				setValue(ps, 3, user.getUserId());
 			
 			result = ps.executeUpdate();
 		}

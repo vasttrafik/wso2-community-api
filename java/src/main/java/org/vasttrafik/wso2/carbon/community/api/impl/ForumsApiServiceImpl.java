@@ -10,6 +10,8 @@ import javax.ws.rs.NotFoundException;
 import javax.ws.rs.ServerErrorException;
 import javax.ws.rs.core.Response;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.vasttrafik.wso2.carbon.common.api.beans.AuthenticatedUser;
 import org.vasttrafik.wso2.carbon.common.api.utils.ResponseUtils;
 import org.vasttrafik.wso2.carbon.community.api.beans.Forum;
@@ -32,6 +34,11 @@ import org.vasttrafik.wso2.carbon.community.api.model.TopicDTO;
  *
  */
 public final class ForumsApiServiceImpl extends CommunityApiServiceImpl {
+	
+	/**
+	 * Logger
+	 */
+	private static final Log log = LogFactory.getLog(ForumsApiServiceImpl.class);
 	
 	private ForumConverter forumConverter = new ForumConverter();
 	
@@ -118,6 +125,12 @@ public final class ForumsApiServiceImpl extends CommunityApiServiceImpl {
         	forum.setId(id);
         	// Return result
         	return Response.status(201).entity(forum).build();
+		}
+		catch (SQLIntegrityConstraintViolationException icve) {
+			log.error(icve.getMessage());
+			// Konstruera ett felobjekt Error och baka in i felet
+			// Om detta inte funkar, kolla på http://stackoverflow.com/questions/1988570/how-to-catch-a-specific-exception-in-jdbc
+			throw new NotFoundException();
 		}
 		catch (NotAuthorizedException bre) {
 			return Response.status(Response.Status.UNAUTHORIZED).entity(bre.getCause()).build();
