@@ -1,0 +1,2350 @@
+swagger: '2.0'
+info:
+  version: 0.9.0
+  title: Västtrafik Developer Community API
+  description: Community API for the developer portal
+consumes:
+  - application/json
+produces:
+  - application/json
+schemes:
+  - https
+paths:
+  /attachments:
+    post:
+      tags:
+        - attachment
+      consumes:
+        - multipart/form-data
+      description: Creates a new attachment
+      parameters:
+        - $ref: '#/parameters/X-JWT-Assertion'
+        - name: attachment
+          in: formData
+          description: The attachment to upload. May be multiple files.
+          required: true
+          type: file
+      responses:
+        '201':
+          description: Successful response with id of newly created attachment
+          schema:
+            $ref: '#/definitions/Attachment'
+        '400':
+          description: Bad request
+          schema:
+            $ref: '#/definitions/Error'
+        '401':
+          description: Unauthorized
+        '500':
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/Error'
+  '/attachments/{id}':
+    get:
+      tags:
+        - attachment
+      description: Downloads an attachment
+      parameters:
+        - $ref: '#/parameters/X-JWT-Assertion'
+        - $ref: '#/parameters/id'
+      responses:
+        '200':
+          description: Successful response
+          schema:
+            type: string
+            format: byte
+        '401':
+          description: Unauthorized
+        '500':
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/Error'
+  /authenticate:
+    post:
+      description: Authenticates the user and issues a JWT token.
+      parameters:
+        - in: body
+          name: body
+          description: 'Credential object, if trying to login.'
+          required: false
+          schema:
+            $ref: '#/definitions/Credentials'
+        - $ref: '#/parameters/Content-Type'
+      responses:
+        '201':
+          description: Authorized. Successful response with the newly authenticated user as entity in the body.
+          schema:
+            $ref: '#/definitions/AuthenticatedUser'
+          headers:
+            Content-Type:
+              description: The content type of the body.
+              type: string
+            ETag:
+              description: 'Entity Tag of the response resource. Used by caches, or in conditional request'
+              type: string
+        '400':
+          description: Bad Request. Invalid request or validation error
+          schema:
+            $ref: '#/definitions/Error'
+        '401':
+          description: Unauthorized.
+          schema:
+            $ref: '#/definitions/Error'
+        '415':
+          description: Unsupported media type
+          schema:
+            $ref: '#/definitions/Error'
+  /categories:
+    get:
+      tags:
+        - category
+      description: Retrieves forum categories
+      parameters:
+        - name: includePrivate
+          in: query
+          description: If all (including private) categories should be included in the result
+          required: false
+          default: false
+          type: boolean
+        - name: includeForums
+          in: query
+          description: If forums should be included in the result
+          required: false
+          default: false
+          type: boolean
+      responses:
+        '200':
+          description: Successful response
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/Category'
+        '500':
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/Error'
+    post:
+      tags:
+        - category
+      description: Admin function to create a category
+      parameters:
+        - $ref: '#/parameters/X-JWT-Assertion'
+        - name: body
+          in: body
+          description: The category to create
+          schema:
+            $ref: '#/definitions/Category'
+      responses:
+        '201':
+          description: Successful response
+          schema:
+            $ref: '#/definitions/Category'
+        '400':
+          description: Bad request
+          schema:
+            $ref: '#/definitions/Error'
+        '401':
+          description: Unauthorized
+        '500':
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/Error'
+  '/categories/{id}':
+    get:
+      tags:
+        - category
+      description: 'Retrieves a category, including all forums'
+      parameters:
+        - $ref: '#/parameters/id'
+      responses:
+        '200':
+          description: Successful response
+          schema:
+            $ref: '#/definitions/Category'
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/Error'
+    put:
+      tags:
+        - category
+      description: Admin function to update a category
+      parameters:
+        - $ref: '#/parameters/X-JWT-Assertion'
+        - $ref: '#/parameters/id'
+        - name: body
+          in: body
+          description: The category to update
+          schema:
+            $ref: '#/definitions/Category'
+      responses:
+        '200':
+          description: Successful response
+          schema:
+            $ref: '#/definitions/Category'
+        '400':
+          description: Bad request
+          schema:
+            $ref: '#/definitions/Error'
+        '401':
+          description: Unauthorized
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/Error'
+    delete:
+      tags:
+        - category
+      description: 'Admin function to delete a category, including all forums'
+      parameters:
+        - $ref: '#/parameters/X-JWT-Assertion'
+        - $ref: '#/parameters/id'
+      responses:
+        '200':
+          description: Successful response
+        '401':
+          description: Unauthorized
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/Error'
+  '/categories/{id}/forums':
+    get:
+      tags:
+        - forum
+      description: 'Retrieves forums belonging to a certain category, without topics'
+      parameters:
+        - $ref: '#/parameters/id'
+        - $ref: '#/parameters/If-Modified-Since'
+        - name: offset
+          $ref: '#/parameters/offset'
+        - name: limit
+          $ref: '#/parameters/limit'
+      responses:
+        '200':
+          description: Successful response
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/Forum'
+        '400':
+          description: Bad request
+          schema:
+            $ref: '#/definitions/Error'
+        '401':
+          description: Unauthorized
+        '500':
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/Error'
+  /folders:
+    post:
+      tags:
+        - folder
+      description: Creates a new folder
+      parameters:
+        - $ref: '#/parameters/X-JWT-Assertion'
+        - name: body
+          in: body
+          description: The folder to create
+          required: true
+          schema:
+            $ref: '#/definitions/Folder'
+      responses:
+        '201':
+          description: 'Successful response, with the id of the newly created folder'
+          schema:
+            $ref: '#/definitions/Folder'
+        '400':
+          description: Bad request
+          schema:
+            $ref: '#/definitions/Error'
+        '401':
+          description: Unauthorized
+        '500':
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/Error'
+  '/folders/{id}':
+    get:
+      tags:
+        - folder
+      description: 'Retrieves a folder, including all its messages'
+      parameters:
+        - $ref: '#/parameters/X-JWT-Assertion'
+        - $ref: '#/parameters/id'
+      responses:
+        '200':
+          description: Successful response
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/Folder'
+        '401':
+          description: Unauthorized
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/Error'
+    put:
+      tags:
+        - folder
+      description: Updates a user defined folder.
+      parameters:
+        - $ref: '#/parameters/X-JWT-Assertion'
+        - $ref: '#/parameters/id'
+        - name: body
+          in: body
+          description: The folder to update
+          required: true
+          schema:
+            $ref: '#/definitions/Folder'
+      responses:
+        '200':
+          description: Successful response
+          schema:
+            $ref: '#/definitions/Folder'
+        '400':
+          description: Bad request
+          schema:
+            $ref: '#/definitions/Error'
+        '401':
+          description: Unauthorized
+        '500':
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/Error'
+    delete:
+      tags:
+        - folder
+      description: 'Deletes a user defined folder, including all its messages'
+      parameters:
+        - $ref: '#/parameters/X-JWT-Assertion'
+        - $ref: '#/parameters/id'
+      responses:
+        '200':
+          description: Successful response
+        '401':
+          description: Unauthorized
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/Error'
+  '/folders/{id}/messages':
+    get:
+      tags:
+        - message
+      description: Retrieves messages in a folder
+      parameters:
+        - $ref: '#/parameters/X-JWT-Assertion'
+        - $ref: '#/parameters/id'
+        - name: query
+          in: query
+          description: Query string that will be matched against message subject and text
+          required: false
+          type: string
+        - name: offset
+          $ref: '#/parameters/offset'
+        - name: limit
+          $ref: '#/parameters/limit'
+      responses:
+        '200':
+          description: Successful response
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/Message'
+        '401':
+          description: Unauthorized
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/Error'
+    put:
+      tags:
+        - message
+      description: Moves messages to another folder
+      parameters:
+        - $ref: '#/parameters/X-JWT-Assertion'
+        - $ref: '#/parameters/id'
+        - name: targetFolder
+          in: query
+          description: The target folder id
+          required: true
+          type: integer
+          format: int64
+        - name: body
+          in: body
+          description: "The id's of the messages to move. If omitted, all messages in the folder are moved"
+          required: false
+          schema:
+            type: array
+            items:
+              type: integer
+              format: in64
+      responses:
+        '200':
+          description: Successful response
+        '401':
+          description: Unauthorized
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/Error'
+    delete:
+      tags:
+        - message
+      description: Deletes messages in the folder
+      parameters:
+        - $ref: '#/parameters/X-JWT-Assertion'
+        - $ref: '#/parameters/id'
+        - name: body
+          in: body
+          description: "The id's of the messages to delete. If omitted, all messages in the folder are deleted"
+          required: false
+          schema:
+            type: array
+            items:
+              type: integer
+              format: int64
+      responses:
+        '200':
+          description: Successful response
+        '401':
+          description: Unauthorized
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/Error'
+  /forums:
+    get:
+      tags:
+        - forum
+      description: 'Retrieves forums, without topics'
+      parameters:
+        - name: name
+          in: query
+          description: Retrieve a forum by name
+          type: string
+          required: false
+        - name: label
+          in: query
+          description: Only retrieve forums with this label
+          type: string
+          enum:
+            - popular
+            - recent
+          required: false
+        - name: offset
+          $ref: '#/parameters/offset'
+        - name: limit
+          $ref: '#/parameters/limit'
+      responses:
+        '200':
+          description: 'Successful response with an array of 0, 1 or more forums'
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/Forum'
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/Error'
+    post:
+      tags:
+        - forum
+      description: Admin function to create a forum
+      parameters:
+        - $ref: '#/parameters/X-JWT-Assertion'
+        - name: body
+          in: body
+          description: The forum to create
+          schema:
+            $ref: '#/definitions/Forum'
+      responses:
+        '201':
+          description: Successful response
+          schema:
+            $ref: '#/definitions/Forum'
+        '400':
+          description: Bad request
+          schema:
+            $ref: '#/definitions/Error'
+        '401':
+          description: Unauthorized
+        '500':
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/Error'
+  '/forums/{id}':
+    get:
+      tags:
+        - forum
+      description: 'Retrieves a forum, including all topics'
+      parameters:
+        - $ref: '#/parameters/id'
+      responses:
+        '200':
+          description: Successful response
+          schema:
+            $ref: '#/definitions/Forum'
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/Error'
+    put:
+      tags:
+        - forum
+      description: Admin function to update a forum
+      parameters:
+        - $ref: '#/parameters/X-JWT-Assertion'
+        - $ref: '#/parameters/id'
+        - name: body
+          in: body
+          description: The forum to update
+          schema:
+            $ref: '#/definitions/Forum'
+      responses:
+        '200':
+          description: Successful response
+          schema:
+            $ref: '#/definitions/Forum'
+        '400':
+          description: Bad request
+          schema:
+            $ref: '#/definitions/Error'
+        '401':
+          description: Unauthorized
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/Error'
+    delete:
+      tags:
+        - forum
+      description: 'Admin function to delete a forum, including all topics'
+      parameters:
+        - $ref: '#/parameters/X-JWT-Assertion'
+        - $ref: '#/parameters/id'
+      responses:
+        '200':
+          description: Successful response
+          schema:
+            $ref: '#/definitions/Forum'
+        '401':
+          description: Unauthorized
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/Error'
+  '/forums/{id}/topics':
+    get:
+      tags:
+        - topic
+      description: 'Retrieves forum topics, without posts'
+      parameters:
+        - $ref: '#/parameters/If-Modified-Since'
+        - $ref: '#/parameters/id'
+        - name: offset
+          $ref: '#/parameters/offset'
+        - name: limit
+          $ref: '#/parameters/limit'
+      responses:
+        '200':
+          description: Successful response
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/Topic'
+        '400':
+          description: Bad request
+          schema:
+            $ref: '#/definitions/Error'
+        '500':
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/Error'
+  '/forums/{id}/watches':
+    post:
+      tags:
+        - watch
+      description: Creates a forum watch
+      parameters:
+        - $ref: '#/parameters/X-JWT-Assertion'
+        - $ref: '#/parameters/id'
+      responses:
+        '201':
+          description: Successful response
+          schema:
+            $ref: '#/definitions/ForumWatch'
+        '401':
+          description: Unauthorized
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/Error'
+  '/forums/{id}/watches/{watchId}':
+    delete:
+      tags:
+        - watch
+      description: Deletes a forum watch
+      parameters:
+        - $ref: '#/parameters/X-JWT-Assertion'
+        - $ref: '#/parameters/id'
+        - name: watchId
+          in: path
+          description: The forum watch id
+          required: true
+          type: integer
+          format: int32
+      responses:
+        '200':
+          description: Successful response
+        '401':
+          description: Unauthorized
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/Error'
+  /members:
+    get:
+      tags:
+        - member
+      description: Performs a partial match (auto-complete) to search for members
+      parameters:
+        - name: member
+          in: query
+          description: The email or signature of the member
+          required: true
+          type: string
+        - $ref: '#/parameters/offset'
+        - $ref: '#/parameters/limit'
+      responses:
+        '200':
+          description: Successful response
+          schema:
+            $ref: '#/definitions/Member'
+        '400':
+          description: Bad request
+          schema:
+            $ref: '#/definitions/Error'
+        '500':
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/Error'
+    post:
+      tags:
+        - member
+      description: Creates a member profile
+      parameters:
+        - $ref: '#/parameters/X-JWT-Assertion'
+        - name: body
+          in: body
+          description: The member profile to create
+          schema:
+            $ref: '#/definitions/Member'
+      responses:
+        '201':
+          description: Successful response
+          schema:
+            $ref: '#/definitions/Member'
+        '400':
+          description: Bad request
+          schema:
+            $ref: '#/definitions/Error'
+        '401':
+          description: Unauthorized
+        '500':
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/Error'
+  '/members/{id}':
+    get:
+      tags:
+        - member
+      description: Retrieves a community member profile
+      parameters:
+        - $ref: '#/parameters/X-JWT-Assertion'
+        - $ref: '#/parameters/id'
+      responses:
+        '200':
+          description: Successful response
+          schema:
+            $ref: '#/definitions/Member'
+        '401':
+          description: Unauthorized
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/Error'
+    put:
+      tags:
+        - member
+      description: Updates a member profile
+      parameters:
+        - $ref: '#/parameters/X-JWT-Assertion'
+        - $ref: '#/parameters/id'
+        - name: body
+          in: body
+          description: The member profile to update
+          schema:
+            $ref: '#/definitions/Member'
+      responses:
+        '200':
+          description: Successful response
+          schema:
+            $ref: '#/definitions/Member'
+        '400':
+          description: Bad request
+          schema:
+            $ref: '#/definitions/Error'
+        '401':
+          description: Unauthorized
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/Error'
+  '/members/{id}/folders':
+    get:
+      tags:
+        - folder
+      description: Retrieves the community member folders
+      parameters:
+        - $ref: '#/parameters/X-JWT-Assertion'
+        - $ref: '#/parameters/id'
+      responses:
+        '200':
+          description: Successful response
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/Folder'
+        '401':
+          description: Unauthorized
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/Error'
+  '/members/{id}/watches':
+    get:
+      tags:
+        - watch
+      description: Retrieves the community member watches
+      parameters:
+        - $ref: '#/parameters/X-JWT-Assertion'
+        - $ref: '#/parameters/id'
+        - name: offset
+          $ref: '#/parameters/offset'
+        - name: limit
+          $ref: '#/parameters/limit'
+      responses:
+        '200':
+          description: Successful response
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/Watch'
+        '401':
+          description: Unauthorized
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/Error'
+    delete:
+      tags:
+        - watch
+      description: Deletes community member watches
+      parameters:
+        - $ref: '#/parameters/X-JWT-Assertion'
+        - $ref: '#/parameters/id'
+        - name: body
+          in: body
+          description: The watches to delete
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/Watch'
+      responses:
+        '200':
+          description: Successful response
+        '401':
+          description: Unauthorized
+        '404':
+          description: Not found
+        '409':
+          description: Conflict. Not all the watches where deleted.
+          schema:
+            $ref: '#/definitions/Error'
+        '500':
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/Error'
+  /messages:
+    post:
+      tags:
+        - message
+      description: Creates a new message
+      parameters:
+        - $ref: '#/parameters/X-JWT-Assertion'
+        - name: body
+          in: body
+          description: The message to create
+          schema:
+            $ref: '#/definitions/Message'
+      responses:
+        '201':
+          description: Successful response with id of newly created message
+          schema:
+            $ref: '#/definitions/Message'
+        '400':
+          description: Bad request
+          schema:
+            $ref: '#/definitions/Error'
+        '401':
+          description: Unauthorized
+        '500':
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/Error'
+  '/messages/{id}':
+    get:
+      tags:
+        - message
+      description: 'Retrieves a message, inluding attachment metadata'
+      parameters:
+        - $ref: '#/parameters/X-JWT-Assertion'
+        - $ref: '#/parameters/id'
+      responses:
+        '200':
+          description: Successful response
+          schema:
+            $ref: '#/definitions/Message'
+        '401':
+          description: Unauthorized
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/Error'
+    delete:
+      tags:
+        - message
+      description: 'Deletes a message, inluding all attachments'
+      parameters:
+        - $ref: '#/parameters/X-JWT-Assertion'
+        - $ref: '#/parameters/id'
+      responses:
+        '200':
+          description: Successful response
+        '401':
+          description: Unauthorized
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/Error'
+  /posts:
+    get:
+      tags:
+        - post
+      description: 'Retrieves posts, without edits'
+      parameters:
+        - name: label
+          in: query
+          description: Only retrieve posts with this label
+          required: false
+          type: string
+          enum:
+            - popular
+            - recent
+            - unanswered
+            - votes
+        - name: query
+          in: query
+          description: 'Query string that will be matched against the following attributes: createDate, createdBy, text, categoryId and forumId'
+          required: false
+          type: string
+        - name: offset
+          $ref: '#/parameters/offset'
+        - name: limit
+          $ref: '#/parameters/limit'
+      responses:
+        '200':
+          description: Successful response
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/Post'
+        '400':
+          description: Bad request
+          schema:
+            $ref: '#/definitions/Error'
+        '500':
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/Error'
+    post:
+      tags:
+        - post
+      description: Creates a new post
+      parameters:
+        - $ref: '#/parameters/X-JWT-Assertion'
+        - name: body
+          in: body
+          description: The post to create
+          required: true
+          schema:
+            $ref: '#/definitions/Post'
+      responses:
+        '201':
+          description: Successful response with the newly created post
+          schema:
+            $ref: '#/definitions/Post'
+        '400':
+          description: Bad request
+          schema:
+            $ref: '#/definitions/Error'
+        '401':
+          description: Unauthorized
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/Error'
+  '/posts/{id}':
+    get:
+      tags:
+        - post
+      description: 'Retrieves a post, including all edits'
+      parameters:
+        - $ref: '#/parameters/id'
+      responses:
+        '200':
+          description: Successful response
+          schema:
+            $ref: '#/definitions/Post'
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/Error'
+    put:
+      tags:
+        - post
+      description: Updates a post
+      parameters:
+        - $ref: '#/parameters/X-JWT-Assertion'
+        - $ref: '#/parameters/id'
+        - name: action
+          in: query
+          description: An action parameter specifying the patch to perform
+          type: string
+          enum:
+            - answered
+            - edited
+        - name: body
+          in: body
+          description: A post object
+          required: true
+          schema:
+            $ref: '#/definitions/Post'
+      responses:
+        '200':
+          description: Successful response
+          schema:
+            $ref: '#/definitions/Post'
+        '400':
+          description: Bad request
+          schema:
+            $ref: '#/definitions/Error'
+        '401':
+          description: Unauthorized
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/Error'
+    delete:
+      tags:
+        - post
+      description: 'Deletes a post, including all edits'
+      parameters:
+        - $ref: '#/parameters/X-JWT-Assertion'
+        - $ref: '#/parameters/id'
+      responses:
+        '200':
+          description: Successful response
+        '401':
+          description: Unauthorized
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/Error'
+  '/posts/{id}/edits':
+    get:
+      tags:
+        - post
+      description: 'Retrieves all versions of the post, sorted in descending order'
+      parameters:
+        - $ref: '#/parameters/id'
+      responses:
+        '200':
+          description: Successful response
+          schema:
+            $ref: '#/definitions/PostEdit'
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/Error'
+  '/posts/{id}/votes':
+    post:
+      tags:
+        - vote
+      description: Creates a vote
+      parameters:
+        - $ref: '#/parameters/X-JWT-Assertion'
+        - $ref: '#/parameters/id'
+        - name: body
+          in: body
+          description: The vote to create
+          schema:
+            $ref: '#/definitions/Vote'
+      responses:
+        '201':
+          description: Successful response
+          schema:
+            $ref: '#/definitions/Vote'
+        '400':
+          description: Bad request
+          schema:
+            $ref: '#/definitions/Error'
+        '401':
+          description: Unauthorized
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/Error'
+  /rankings:
+    get:
+      tags:
+        - ranking
+      description: Retrieves rankings of the specifided type
+      parameters:
+        - name: type
+          in: query
+          description: The ranking type. Default is reputation.
+          required: false
+          type: string
+          enum:
+            - poster
+            - reputation
+          default: reputation
+        - name: sorting
+          in: query
+          description: 'The sorting order, defaults to descending'
+          required: false
+          type: string
+          enum:
+            - asc
+            - desc
+          default: desc
+        - name: offset
+          $ref: '#/parameters/offset'
+        - name: limit
+          $ref: '#/parameters/limit'
+      responses:
+        '200':
+          description: Successful response
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/Ranking'
+        '500':
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/Error'
+  /reports:
+    get:
+      tags:
+        - report
+      description: Admin function to retrieves reports
+      parameters:
+        - $ref: '#/parameters/X-JWT-Assertion'
+        - $ref: '#/parameters/If-Modified-Since'
+        - name: measure
+          in: query
+          description: The measure taken
+          type: string
+          required: false
+          enum:
+            - asked
+            - warned
+            - banned
+            - none
+            - null
+        - name: offset
+          $ref: '#/parameters/offset'
+        - name: limit
+          $ref: '#/parameters/limit'
+      responses:
+        '200':
+          description: Successful response
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/Report'
+        '400':
+          description: Bad request
+          schema:
+            $ref: '#/definitions/Error'
+        '401':
+          description: Unauthorized
+        '500':
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/Error'
+    post:
+      tags:
+        - report
+      description: Submits a report
+      parameters:
+        - $ref: '#/parameters/X-JWT-Assertion'
+        - name: body
+          in: body
+          description: The report to submit
+          schema:
+            $ref: '#/definitions/Report'
+      responses:
+        '201':
+          description: Successful response
+          schema:
+            $ref: '#/definitions/Report'
+        '400':
+          description: Bad request
+          schema:
+            $ref: '#/definitions/Error'
+        '401':
+          description: Unauthorized
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/Error'
+  '/reports/{id}':
+    get:
+      tags:
+        - report
+      description: 'Retrieves a report, including all measures taken'
+      parameters:
+        - $ref: '#/parameters/X-JWT-Assertion'
+        - $ref: '#/parameters/id'
+      responses:
+        '200':
+          description: Successful response
+          schema:
+            $ref: '#/definitions/Report'
+        '401':
+          description: Unauthorized
+        '500':
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/Error'
+    put:
+      tags:
+        - report
+      description: Updates a report
+      parameters:
+        - $ref: '#/parameters/X-JWT-Assertion'
+        - $ref: '#/parameters/id'
+        - name: body
+          in: body
+          description: The report to update
+          schema:
+            $ref: '#/definitions/Report'
+      responses:
+        '200':
+          description: Successful response
+          schema:
+            $ref: '#/definitions/Report'
+        '400':
+          description: Bad request
+          schema:
+            $ref: '#/definitions/Error'
+        '401':
+          description: Unauthorized
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/Error'
+  '/reports/{id}/measures':
+    post:
+      tags:
+        - measure
+      description: Submits a report measure
+      parameters:
+        - $ref: '#/parameters/X-JWT-Assertion'
+        - $ref: '#/parameters/id'
+        - name: body
+          in: body
+          description: The report measure to submit
+          schema:
+            $ref: '#/definitions/ReportMeasure'
+      responses:
+        '201':
+          description: Successful response
+          schema:
+            $ref: '#/definitions/ReportMeasure'
+        '400':
+          description: Bad request
+          schema:
+            $ref: '#/definitions/Error'
+        '401':
+          description: Unauthorized
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/Error'
+  /tags:
+    get:
+      tags:
+        - tag
+      description: Retrieves available tags
+      parameters:
+        - name: offset
+          $ref: '#/parameters/offset'
+        - name: limit
+          $ref: '#/parameters/limit'
+      responses:
+        '200':
+          description: Successful response
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/Tag'
+        '500':
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/Error'
+  /topics:
+    get:
+      tags:
+        - topic
+      description: 'Retrieves topics, without posts'
+      parameters:
+        - name: label
+          in: query
+          description: Only retrieve topics with this label
+          required: false
+          type: string
+          enum:
+            - popular
+            - recent
+            - unanswered
+            - votes
+        - name: query
+          in: query
+          description: 'Query string that will be matched against the following attributes: createDate, createdBy, subject, text, categoryId and forumId'
+          required: false
+          type: string
+        - name: offset
+          $ref: '#/parameters/offset'
+        - name: limit
+          $ref: '#/parameters/limit'
+      responses:
+        '200':
+          description: Successful response
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/Topic'
+        '400':
+          description: Bad request
+          schema:
+            $ref: '#/definitions/Error'
+        '500':
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/Error'
+    post:
+      tags:
+        - topic
+      description: Creates a new topic
+      parameters:
+        - $ref: '#/parameters/X-JWT-Assertion'
+        - name: body
+          in: body
+          description: The topic to create
+          schema:
+            $ref: '#/definitions/Topic'
+      responses:
+        '201':
+          description: Successful response
+          schema:
+            $ref: '#/definitions/Topic'
+        '400':
+          description: Bad request
+          schema:
+            $ref: '#/definitions/Error'
+        '401':
+          description: Unauthorized
+        '500':
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/Error'
+  '/topics/{id}':
+    get:
+      tags:
+        - topic
+      description: 'Retrieves a forum topic, inluding all posts'
+      parameters:
+        - $ref: '#/parameters/id'
+      responses:
+        '200':
+          description: Successful response
+          schema:
+            $ref: '#/definitions/Topic'
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/Error'
+    put:
+      tags:
+        - topic
+      description: Updates a topic
+      parameters:
+        - $ref: '#/parameters/X-JWT-Assertion'
+        - $ref: '#/parameters/id'
+        - name: action
+          in: query
+          description: The action to take
+          type: string
+          enum:
+            - subject
+            - close
+            - tag
+        - name: body
+          in: body
+          description: The topic to update
+          schema:
+            $ref: '#/definitions/Topic'
+      responses:
+        '200':
+          description: Successful response
+          schema:
+            $ref: '#/definitions/Topic'
+        '400':
+          description: Bad request
+          schema:
+            $ref: '#/definitions/Error'
+        '401':
+          description: Unauthorized
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/Error'
+    delete:
+      tags:
+        - topic
+      description: 'Deletes a topic, inluding all posts'
+      parameters:
+        - $ref: '#/parameters/X-JWT-Assertion'
+        - $ref: '#/parameters/id'
+      responses:
+        '200':
+          description: Successful response
+        '401':
+          description: Unauthorized
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/Error'
+  '/topics/{id}/posts':
+    get:
+      tags:
+        - post
+      description: Retrieves posts in a topic
+      parameters:
+        - $ref: '#/parameters/id'
+        - $ref: '#/parameters/If-Modified-Since'
+        - name: offset
+          $ref: '#/parameters/offset'
+        - name: limit
+          $ref: '#/parameters/limit'
+      responses:
+        '200':
+          description: Successful response
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/Post'
+        '400':
+          description: Bad request
+          schema:
+            $ref: '#/definitions/Error'
+        '500':
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/Error'
+  '/topics/{id}/votes':
+    get:
+      tags:
+        - vote
+      description: 'Retrieves votes for a specific topic, possibly filtered by member id'
+      parameters:
+        - $ref: '#/parameters/X-JWT-Assertion'
+        - $ref: '#/parameters/id'
+        - name: memberId
+          in: query
+          description: Filter by member id.
+          required: false
+          type: integer
+          format: int32
+      responses:
+        '200':
+          description: Successful response
+          schema:
+            type: array
+            items:
+              $ref: '#/definitions/Vote'
+        '401':
+          description: Unauthorized
+        '500':
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/Error'
+  '/topics/{id}/watches':
+    post:
+      tags:
+        - watch
+      description: Creates a topic watch
+      parameters:
+        - $ref: '#/parameters/X-JWT-Assertion'
+        - $ref: '#/parameters/id'
+      responses:
+        '201':
+          description: Successful response
+          schema:
+            $ref: '#/definitions/TopicWatch'
+        '401':
+          description: Unauthorized
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/Error'
+  '/topics/{id}/watches/{watchId}':
+    delete:
+      tags:
+        - watch
+      description: Deletes a topic watch
+      parameters:
+        - $ref: '#/parameters/X-JWT-Assertion'
+        - $ref: '#/parameters/id'
+        - name: watchId
+          in: path
+          description: The topic watch id
+          required: true
+          type: integer
+          format: int32
+      responses:
+        '200':
+          description: Successful response
+        '401':
+          description: Unauthorized
+        '404':
+          description: Not found
+        '500':
+          description: Internal server error
+          schema:
+            $ref: '#/definitions/Error'
+parameters:
+  X-JWT-Assertion:
+    name: X-JWT-Assertion
+    in: header
+    description: JWT token
+    required: true
+    type: string
+  If-Modified-Since:
+    name: If-Modified-Since
+    in: header
+    description: Standard http header
+    required: false
+    type: string
+    format: date-time
+  id:
+    name: id
+    in: path
+    description: Resource id
+    required: true
+    type: integer
+    format: int64
+  limit:
+    name: limit
+    in: query
+    description: Maximum size array to return
+    default: 10
+    required: false
+    type: integer
+    format: int32
+  offset:
+    name: offset
+    in: query
+    description: Starting point of the list
+    default: 1
+    required: false
+    type: integer
+    format: int32
+definitions:
+  AccessToken:
+    title: OAuth2 access token
+    required:
+      - token
+      - refreshToken
+      - expires
+    properties:
+      token:
+        type: string
+      refreshToken:
+        type: string
+      expires:
+        type: integer
+        format: int64
+  Attachment:
+    description: Attachment to a message
+    required:
+      - messageId
+      - fileName
+      - mimeType
+      - size
+    properties:
+      id:
+        description: Attachment id
+        type: integer
+        format: int64
+      messageId:
+        description: The message this attachment belongs to
+        type: integer
+        format: int64
+      fileName:
+        description: The file name
+        type: string
+      mimeType:
+        description: Mime type
+        type: string
+      size:
+        description: Attachment size in bytes
+        type: integer
+        format: int64
+  AuthenticatedUser:
+    title: Authenticated user object
+    required:
+      - userId
+      - userName
+      - roles
+      - accessToken
+    properties:
+      userId:
+        type: string
+      userName:
+        type: string
+      roles:
+        type: array
+        items:
+          type: string
+      accessToken:
+        $ref: '#/definitions/AccessToken'
+  Category:
+    title: Category
+    description: A category is a container for related forums
+    required:
+      - name
+      - isPublic
+    properties:
+      id:
+        description: Category id
+        type: integer
+        format: int32
+      isPublic:
+        description: Flag indicating if the category is public
+        type: boolean
+        default: true
+      name:
+        description: Category name
+        type: string
+      imageURL:
+        description: An image url
+        type: string
+      numberOfForums:
+        description: Number of forums belonging to category
+        type: integer
+        format: int32
+      forums:
+        description: Forums belonging to category
+        type: array
+        items:
+          $ref: '#/definitions/Forum'
+  Credentials:
+    title: Credentials
+    required:
+      - userName
+      - credential
+    properties:
+      userName:
+        description: Username
+        type: string
+      credential:
+        description: Password
+        type: string
+  Error:
+    title: Error
+    description: Error message
+    required:
+      - code
+      - message
+    properties:
+      code:
+        description: Error code
+        type: string
+      message:
+        description: Error message
+        type: string
+      description:
+        description: Detailed error description
+        type: string
+      moreInfo:
+        description: 'More information about the error, such as a URL'
+        type: string
+      items:
+        description: 'If request resulted in multiple errors, list them in this array'
+        type: array
+        items:
+          $ref: '#/definitions/ErrorListItem'
+  ErrorListItem:
+    title: ErrorListItem
+    description: Description of individual errors that may have occored during a request
+    required:
+      - code
+      - message
+    properties:
+      code:
+        description: Error code
+        type: string
+      message:
+        description: Error message
+        type: string
+  Folder:
+    title: Folder
+    required:
+      - memberId
+      - name
+      - type
+    properties:
+      id:
+        description: Folder id
+        type: integer
+        format: int32
+      parentId:
+        description: The folder parent id
+        type: integer
+        format: int64
+      memberId:
+        description: The member this folder belongs to
+        type: integer
+        format: int64
+      name:
+        description: The folder name
+        type: string
+      type:
+        description: The folder type
+        type: string
+        enum:
+          - inbox
+          - sent
+          - drafts
+          - trash
+          - user
+      size:
+        description: 'The size of the folder, in bytes'
+        type: integer
+        format: int64
+      imageURL:
+        description: Folder icon URL
+        type: string
+      messages:
+        description: The messages in the folder
+        type: array
+        items:
+          $ref: '#/definitions/Message'
+      numberOfMessages:
+        description: The number of messages in the folder
+        type: integer
+        format: int32
+      numberOfUnreadMessages:
+        description: The number of unread messages in the folder
+        type: integer
+        format: int32
+  Forum:
+    title: Forum
+    description: A forum is a container for related topics
+    required:
+      - categoryId
+      - name
+      - description
+    properties:
+      id:
+        description: Forum id
+        type: integer
+        format: int32
+      categoryId:
+        description: The category this forum belongs to
+        type: integer
+        format: int32
+      name:
+        description: Forum name
+        type: string
+      description:
+        description: Forum description
+        type: string
+      imageURL:
+        description: An image url
+        type: string
+      numberOfTopics:
+        description: Number of topics in the forum
+        type: integer
+        format: int32
+      numberOfPosts:
+        description: Number of posts in the forum
+        type: integer
+        format: int32
+      lastPost:
+        description: The last post in the forum
+        $ref: '#/definitions/Post'
+      topics:
+        description: Forum topics
+        type: array
+        items:
+          $ref: '#/definitions/Topic'
+  ForumWatch:
+    title: ForumWatch
+    description: User watching a forum
+    required:
+      - forumId
+      - member
+    properties:
+      forumId:
+        description: The forum this watch belongs to
+        type: integer
+        format: int32
+      id:
+        description: Forum watch id
+        type: integer
+        format: int64
+      member:
+        description: The member watching a topic
+        $ref: '#/definitions/Member'
+  Member:
+    title: Member
+    description: A community member (user)
+    required:
+      - id
+      - userName
+      - email
+    properties:
+      id:
+        description: Member id
+        type: integer
+        format: int32
+      userName:
+        description: Username
+        type: string
+      email:
+        description: User email
+        type: string
+      status:
+        description: The status of the user
+        type: string
+        enum:
+          - inactive
+          - active
+          - probation
+          - banned
+          - deleted
+      showEmail:
+        description: Whether the email of the user should be displayed
+        type: boolean
+      signature:
+        description: Signature to use
+        type: string
+      useGravatar:
+        description: Whether to use Gravatar
+        type: boolean
+      gravatarEmail:
+        description: The Gravatar email of the user
+        type: string
+      acceptAllMessages:
+        description: Whether private messages is enabled
+        type: boolean
+      notifyEmail:
+        description: Whether the user should be notified by email
+        type: boolean
+      notifyMessage:
+        description: Whether the user should be notified by internal message
+        type: boolean
+      notifyText:
+        description: Whether the text should be included in notifications
+        type: boolean
+      showRankings:
+        description: Whether ranking information should be displayed
+        type: boolean
+      rankings:
+        description: The user rankings
+        type: array
+        items:
+          $ref: '#/definitions/MemberRanking'
+  MemberRanking:
+    title: MemberRanking
+    description: Ranking for a community member
+    required:
+      - title
+      - type
+      - imageURL
+    properties:
+      id:
+        description: Ranking id
+        type: integer
+        format: int32
+      memberId:
+        description: Member id
+        type: integer
+        format: int32
+      title:
+        description: Ranking title
+        type: string
+      type:
+        description: Ranking type
+        type: string
+        enum:
+          - poster
+          - reputation
+      imageURL:
+        description: A ranking image
+        type: string
+      minPoints:
+        description: The number of points required for this ranking
+        type: integer
+        format: int32
+      currentPoints:
+        description: The number of points currently held
+  Message:
+    title: Message
+    description: A private message between community member or between admins and community members
+    required:
+      - folderId
+      - subject
+      - body
+      - sender
+      - recipients
+    properties:
+      id:
+        description: Message id
+        type: integer
+        format: int64
+      originalId:
+        description: 'The original message id, in case this message is a reply or forward.'
+        type: integer
+        format: int64
+      folderId:
+        description: The folder this message belongs to
+        type: integer
+        format: int64
+      subject:
+        description: 'The subject of the message. In case the message is a reply or a forward, the subject will reflect this.'
+        type: string
+      body:
+        description: The text of the message
+        type: string
+      htmlEnabled:
+        description: Whether html rendering is enabled
+        type: boolean
+        default: true
+      createDate:
+        description: Date and time when the message was created
+        type: string
+        format: date-time
+      readDate:
+        description: The date and time this message was opened for reading by the recipient
+        type: string
+        format: date-time
+      sender:
+        description: The user that created the message
+        $ref: '#/definitions/Member'
+      recipients:
+        description: The recipients of the message
+        type: array
+        items:
+          $ref: '#/definitions/Member'
+      numberOfAttachments:
+        description: Number of attachments in the message
+        type: integer
+        format: int32
+      attachments:
+        description: Attachments
+        type: array
+        items:
+          $ref: '#/definitions/Attachment'
+  Post:
+    title: Post
+    description: 'A post belongs to a topic and can be a question, answer, comment or report'
+    required:
+      - topicId
+      - type
+      - text
+      - textFormat
+    properties:
+      id:
+        description: Post id
+        type: integer
+        format: int64
+      topicId:
+        description: The topic this post was submitted to
+        type: integer
+        format: int64
+      forumId:
+        description: The forum this post was submitted to
+        type: integer
+        format: int64
+      categoryId:
+        description: The category this post was submitted to
+        type: integer
+        format: int64
+      type:
+        description: The post type
+        type: string
+        enum:
+          - question
+          - answer
+          - comment
+          - report
+      text:
+        description: The text of the post
+        type: string
+      textFormat:
+        description: 'Markup language, or plain text'
+        type: string
+        enum:
+          - hmtl
+          - md
+          - plain
+      createDate:
+        description: Date and time when the post was submitted
+        type: string
+        format: date-time
+      createdBy:
+        description: The user that submitted the post
+        $ref: '#/definitions/Member'
+      commentTo:
+        description: If the post is a reply to some other post
+        $ref: '#/definitions/Post'
+      pointsAwarded:
+        description: Points awarded by votes
+        type: integer
+        format: int32
+      isAnswer:
+        description: If this post has been selected as the answer to the topic question
+        type: boolean
+      editDate:
+        description: The date and time the post was last edited
+        type: string
+        format: date-time
+      editedBy:
+        description: The user that performed the last edit
+        $ref: '#/definitions/Member'
+      numberOfTimesEdited:
+        description: The number of times the post has been edited
+        type: integer
+        format: int32
+      edits:
+        description: 'Previous versions of the post, if it has been edited'
+        type: array
+        items:
+          $ref: '#/definitions/PostEdit'
+      reports:
+        description: 'If the post has been reported, an array of all the reports'
+        type: array
+        items:
+          $ref: '#/definitions/Report'
+      isModerated:
+        description: If the post has been moderated. A moderated post may only be edited by a moderator.
+        type: boolean
+        default: false
+      isDeleted:
+        description: If this post has been deleted (flagged as deleted)
+        type: boolean
+        default: false
+      isReported:
+        description: If the post has been reported
+        type: boolean
+        default: false
+  PostEdit:
+    title: PostEdit
+    description: A previus version of a post that has been edited
+    required:
+      - postId
+      - version
+      - text
+      - ml
+    properties:
+      id:
+        description: Post edit id
+        type: integer
+        format: int64
+      postId:
+        description: The post this edit belongs to
+        type: integer
+        format: int64
+      version:
+        description: The post version
+        type: integer
+        format: int32
+      text:
+        description: The text of the post
+        type: string
+      ml:
+        description: Markup language
+        type: string
+        enum:
+          - hmtl
+          - md
+      createDate:
+        description: Date and time when the post was submitted
+        type: string
+        format: date-time
+      createdBy:
+        description: The user that submitted the post
+        $ref: '#/definitions/Member'
+  Ranking:
+    title: Ranking
+    description: Ranking for a community member
+    required:
+      - title
+      - type
+      - imageURL
+    properties:
+      id:
+        description: Ranking id
+        type: integer
+        format: int32
+      title:
+        description: Ranking title
+        type: string
+      type:
+        description: Ranking type
+        type: string
+        enum:
+          - poster
+          - reputation
+      imageURL:
+        description: A ranking image
+        type: string
+      minPoints:
+        description: The number of points required for this ranking
+        type: integer
+        format: int32
+      members:
+        description: The members having this ranking
+        type: array
+        items:
+          $ref: '#/definitions/Member'
+  Report:
+    title: Report
+    description: 'A report can be submitted by a community member in response to a post containing obscene language, disrespectful remarks etc, but can also be automatically generated by the system as a result of text analysis'
+    required:
+      - id
+      - post
+      - type
+      - text
+    properties:
+      id:
+        description: Report id
+        type: integer
+        format: int64
+      post:
+        description: The post that was reported
+        $ref: '#/definitions/Post'
+      type:
+        description: The report type
+        type: string
+        enum:
+          - user
+          - system
+      text:
+        description: The report text
+        type: string
+      reportDate:
+        description: The date and time the report was submitted
+        type: string
+        format: date-time
+      reportedBy:
+        description: The user that submitted the report
+        $ref: '#/definitions/Member'
+      measures:
+        description: The measures having been taken in response to this report
+        type: array
+        items:
+          $ref: '#/definitions/ReportMeasure'
+  ReportMeasure:
+    title: ReportMeasure
+    description: Measure taken in response to a report
+    required:
+      - id
+      - type
+    properties:
+      id:
+        description: Measure id
+        type: integer
+        format: int64
+      type:
+        description: The measure type
+        type: string
+        enum:
+          - asked
+          - warned
+          - banned
+          - none
+      message:
+        description: The message sent to the user having been reported
+        $ref: '#/definitions/Message'
+      measureDate:
+        description: The date and time the measure was taken
+        type: string
+        format: date-time
+      rectifiedBy:
+        description: The user that took measure in response to the report
+        $ref: '#/definitions/Member'
+      reporterNotification:
+        description: The message sent to the user submitting the report
+        $ref: '#/definitions/Message'
+  Tag:
+    title: Tag
+    description: 'Tags are currently used to tag topics in private forums, i.e. news, calendar events, blogs and showcases. There is no support for tagging topics in public forums.'
+    required:
+      - label
+    properties:
+      id:
+        description: Tag id
+        type: integer
+        format: int64
+      label:
+        description: The actual tag
+        type: string
+  Topic:
+    title: Topic
+    description: The subject of a question posted in a forum
+    required:
+      - forumId
+      - subject
+    properties:
+      id:
+        description: Topic id
+        type: integer
+        format: int64
+      categoryId:
+        description: The category this topic belongs to
+        type: integer
+        format: int32
+      categoryName:
+        description: Category name
+        type: string
+      forumId:
+        description: The forum this topic was created in
+        type: integer
+        format: int32
+      forumName:
+        description: Forum name
+        type: string
+      subject:
+        description: Topic subject
+        type: string
+      createDate:
+        description: Date and time when the topic was created
+        type: string
+        format: date-time
+      createdBy:
+        description: The user that created the topic
+        $ref: '#/definitions/Member'
+      tags:
+        description: Tags for the topic
+        type: array
+        items:
+          $ref: '#/definitions/Tag'
+      posts:
+        description: Posts in the topic
+        type: array
+        items:
+          $ref: '#/definitions/Post'
+      firstPost:
+        description: The last post in the forum
+        $ref: '#/definitions/Post'
+      lastPost:
+        description: The last post in the forum
+        $ref: '#/definitions/Post'
+      closedDate:
+        description: Date and time when the topic was closed for further answers/comments/edits
+        type: string
+        format: date-time
+      closedBy:
+        description: The user that closed the topic
+        $ref: '#/definitions/Member'
+      numberOfPosts:
+        description: The total number of posts in the topic
+        type: integer
+        format: int32
+      numberOfViews:
+        description: Number of times the topic has been viewed
+        type: integer
+        format: int32
+      numberOfAnswers:
+        description: Number of answers in the topic
+        type: integer
+        format: int32
+      answeredByPostId:
+        description: The id of the post that was selected as an aswer
+        type: integer
+        format: int64
+      isDeleted:
+        description: If this post has been deleted (flagged as deleted)
+        type: boolean
+        default: false
+  TopicWatch:
+    title: TopicWatch
+    description: User watching a topic
+    required:
+      - topicId
+      - member
+    properties:
+      id:
+        description: Topic watch id
+        type: integer
+        format: int64
+      topicId:
+        description: Topic id
+        type: integer
+        format: int64
+      member:
+        description: The member watching a topic
+        $ref: '#/definitions/Member'
+  Vote:
+    title: Vote
+    description: A vote is a way for community members to award points for questions and answers. The points are then used for ranking purposes.
+    required:
+      - postId
+      - type
+      - memberId
+      - points
+    properties:
+      id:
+        description: User id
+        type: integer
+        format: int32
+      topicId:
+        description: The topic id
+        type: integer
+        format: int64
+      postId:
+        description: The post id
+        type: integer
+        format: int64
+      type:
+        description: The voting type
+        type: string
+        enum:
+          - question
+          - answer
+      memberId:
+        description: The user casting the vote
+        type: integer
+        format: int64
+      points:
+        description: Number of points awarded
+        type: integer
+        format: int32
+  Watch:
+    title: Watch
+    description: A watch is a way for a community member to be automatically notified of events in a forum or topic.
+    required:
+      - id
+      - type
+      - title
+    properties:
+      id:
+        description: Watch id
+        type: integer
+        format: int32
+      type:
+        description: The watch type
+        type: string
+        enum:
+          - forum
+          - topic
+      title:
+        description: Forum or topic title
+        type: string
