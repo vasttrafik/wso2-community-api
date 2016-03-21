@@ -131,7 +131,7 @@ public class TopicsApiServiceImpl extends CommunityApiServiceImpl {
 		
 		try {
 			// Authorize. May throw NotAuthorizedException
-			authorize(authorization);
+			AuthenticatedUser user = authorize(authorization);
 			
 			// Start by making sure there is a question in the array of posts
 			Post post = getQuestion(topic);
@@ -139,9 +139,6 @@ public class TopicsApiServiceImpl extends CommunityApiServiceImpl {
 			TopicDTO topicDTO = topicConverter.convert(topic);
 			// Convert the post to a DTO
 			PostDTO postDTO = postConverter.convert(post);
-
-			// Get the id of the member trying to create a topic
-			Integer memberId = getEndUserId();
 			
 			// Get the DAO implementation
 			topicDAO = DAOProvider.getDAO(TopicDAO.class);
@@ -152,7 +149,7 @@ public class TopicsApiServiceImpl extends CommunityApiServiceImpl {
 			
 			try {
 				// Assign the member id to the createdbyid
-				topicDTO.setCreatedById(memberId);
+				topicDTO.setCreatedById(user.getUserId());
 				// Create the topic
 				topicId = topicDAO.insert(topicDTO);
 			}
@@ -173,7 +170,7 @@ public class TopicsApiServiceImpl extends CommunityApiServiceImpl {
         		// Assign the topic id to the post
 				postDTO.setTopicId(topicId);
 				// Assign the created by to the post
-        		postDTO.setCreatedById(memberId);
+        		postDTO.setCreatedById(user.getUserId());
         		// Create the post
         		postDAO.insert(postDTO);
         	}
