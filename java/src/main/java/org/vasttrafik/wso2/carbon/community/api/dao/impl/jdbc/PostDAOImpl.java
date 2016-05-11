@@ -61,7 +61,7 @@ public final class PostDAOImpl extends GenericDAO<PostDTO> implements PostDAO {
 		", row_number() over (order by a.com_edit_date desc) as row_num";
 	
 	private final static String SQL_ORDER_BY_ORDERING = 
-		", row_number() over (order by ordering desc) as row_num";
+		", row_number() over (order by ordering asc) as row_num";
 	
 	private static Map<String, String> columnMappings = null;
 
@@ -259,8 +259,9 @@ public final class PostDAOImpl extends GenericDAO<PostDTO> implements PostDAO {
 			// The basic SELECT is just a list of columns
 			String sql = "select a.*";
 			
-			if (offset != null)  
-				sql += ", row_number() over (order by a.ordering desc) as row_num"; 
+			if (offset == null)  {
+				sql += SQL_ORDER_BY_ORDERING;
+			}
 			
 			sql += " from com_post_view a where a.com_topic_id = ?";
 			
@@ -271,16 +272,12 @@ public final class PostDAOImpl extends GenericDAO<PostDTO> implements PostDAO {
 			if (offset != null)  {
 				sql = SQL_SELECT_WITH + "(" + sql + ")" + SQL_SELECT_WITH_ROWNUM;
 			}
-			else {
-				// Add the ORDER BY clause
-				sql += SQL_ORDER_BY_ORDERING;
-			}
 				
 			// Get a connection
 			getConnection();
 			// Prepare the statement
 			ps = conn.prepareStatement(sql); 
-			log.error(sql);
+			log.debug(sql);
 			// Variable needed to keep track of bind values¨
 			int i = 1;
 				
@@ -494,7 +491,7 @@ public final class PostDAOImpl extends GenericDAO<PostDTO> implements PostDAO {
 		postDTO.setType(rs.getString("com_type")); 						// java.lang.String
 		postDTO.setText(rs.getString("com_text")); 						// java.lang.String
 		postDTO.setTextFormat(rs.getString("com_text_format")); 		// java.lang.String
-		postDTO.setCreateDate(rs.getDate("com_created_date")); 			// java.util.Date
+		postDTO.setCreateDate(rs.getTimestamp("com_created_date")); 			// java.util.Date
 		postDTO.setCreatedById(rs.getInt("com_created_by_id")); 		// java.lang.Integer
 		if (rs.wasNull()) { postDTO.setCreatedById(null); }; 			// not primitive number => keep null value if any
 		postDTO.setCommentToId(rs.getLong("com_comment_to_id")); 		// java.lang.Integer
@@ -503,7 +500,7 @@ public final class PostDAOImpl extends GenericDAO<PostDTO> implements PostDAO {
 		if (rs.wasNull()) { postDTO.setPointsAwarded(null); }; 			// not primitive number => keep null value if any
 		postDTO.setIsAnswer(rs.getBoolean("com_is_answer")); 			// java.lang.Boolean
 		if (rs.wasNull()) { postDTO.setIsAnswer(null); }; 				// not primitive number => keep null value if any
-		postDTO.setEditDate(rs.getDate("com_edit_date")); 				// java.util.Date
+		postDTO.setEditDate(rs.getTimestamp("com_edit_date")); 				// java.util.Date
 		postDTO.setEditedById(rs.getInt("com_edited_by_id")); 			// java.lang.Integer
 		if (rs.wasNull()) { postDTO.setEditedById(null); }; 			// not primitive number => keep null value if any
 		postDTO.setEditCount(rs.getShort("com_edit_count")); 			// java.lang.Short

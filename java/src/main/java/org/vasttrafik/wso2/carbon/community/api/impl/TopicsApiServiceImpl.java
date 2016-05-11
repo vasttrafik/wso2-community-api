@@ -56,7 +56,7 @@ public class TopicsApiServiceImpl extends CommunityApiServiceImpl {
 	private PostConverter postConverter = new PostConverter();
 	
 	private static final String[] actions = {"subject", "close", "tag"};
-	private static final String[] labels = {"popular", "recent", "unanswered", "votes"};
+	private static final String[] labels = {"popular", "recent", "answered", "unanswered", "votes"};
 	
 	private static final Log log = LogFactory.getLog(TopicsApiServiceImpl.class);
 	
@@ -182,7 +182,8 @@ public class TopicsApiServiceImpl extends CommunityApiServiceImpl {
         	// Commit the transaction
         	topicDAO.commitTransaction(true);
         	// Get the created topic
-        	return getTopic(topicId);
+        	
+        	return Response.status(201).entity(getTopic(topicId).getEntity()).build();
 		}
 		catch (NotAuthorizedException bre) {
 			return Response.status(Response.Status.UNAUTHORIZED)
@@ -244,13 +245,15 @@ public class TopicsApiServiceImpl extends CommunityApiServiceImpl {
         		
         		// TO-DO: Get all posts, then set first and last post accordingly
         		
-        		// Load the first post
-        		Post firstPost = loadPost(topic.getFirstPost());
-        		topic.setFirstPost(firstPost);
+        		// Update number of view for each get request
+        		topicDAO.incrementViews(topicDTO);
         		
-        		// Load the last post
-        		Post lastPost = loadPost(topic.getLastPost());
-        		topic.setFirstPost(lastPost);
+        		@SuppressWarnings("unchecked")
+				List<Post> posts = (List<Post>)getPosts(null, topic.getId(), null, null).getEntity();
+        		
+        		topic.setPosts(posts);
+        		topic.setFirstPost(posts.get(0));
+        		topic.setLastPost(posts.get(posts.size()-1));
         		
         		// Return result
         		return Response.status(200).entity(topic).build();
@@ -289,7 +292,7 @@ public class TopicsApiServiceImpl extends CommunityApiServiceImpl {
 					actions, 
 					action);
 			
-			// Convert the category
+			// Convert the topic
         	TopicDTO topicDTO = topicConverter.convert(topic);
 			// Get the DAO implementation
         	TopicDAO topicDAO = DAOProvider.getDAO(TopicDAO.class);
@@ -400,6 +403,19 @@ public class TopicsApiServiceImpl extends CommunityApiServiceImpl {
 			List<PostDTO> postDTOs = postDAO.findByTopic(topicId, isoDate, offset, limit);
 			// Convert the result
 			List<Post> posts = postConverter.convert(postDTOs);
+			
+			// Get the DAO implementation
+        	MemberDAO memberDAO = DAOProvider.getDAO(MemberDAO.class);
+			
+			for(Post post : posts) {
+				// Get the member that created the post
+	    		MemberDTO memberDTO = memberDAO.find(post.getCreatedBy().getId());
+	    		// Convert
+	    		Member member = new MemberConverter().convert(memberDTO);
+	    		// Assign the member to the post
+	    		post.setCreatedBy(member);
+			}
+			
 			// Return the result
 			return Response.status(200).entity(posts).build();
 			

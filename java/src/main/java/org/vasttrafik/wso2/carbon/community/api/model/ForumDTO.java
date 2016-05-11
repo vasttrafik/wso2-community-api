@@ -24,6 +24,8 @@ public final class ForumDTO implements Serializable {
     //----------------------------------------------------------------------    
     // DB : com_category_id int 
     private Integer categoryId;
+    // DB : com_category_name varchar 
+    private String categoryName;
     // DB : com_name varchar 
     private String name;
     // DB : com_desc varchar 
@@ -66,7 +68,24 @@ public final class ForumDTO implements Serializable {
     public Integer getCategoryId() {
         return this.categoryId;
     }
+    
     /**
+     * Sets the categoryName value
+     * @param categoryName The value to set.
+     */
+    public String getCategoryName() {
+		return categoryName;
+	}
+
+    /**
+     * Retrieves the categoryName value
+     * @return The categoryName value.
+     */
+	public void setCategoryName(String categoryName) {
+		this.categoryName = categoryName;
+	}
+
+	/**
      * Sets the name value
      * @param name The value to set.
      */

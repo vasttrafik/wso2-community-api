@@ -1,5 +1,6 @@
 package org.vasttrafik.wso2.carbon.community.api.impl;
 
+import java.sql.SQLException;
 import java.util.Date;
 import java.util.List;
 
@@ -127,10 +128,9 @@ public final class PostsApiServiceImpl extends CommunityApiServiceImpl {
         	Long id = postDAO.insert(postDTO);
         	// Lookup the post to get the default values
         	postDTO = postDAO.find(id);
-        	// Convert the result
-    		post = postConverter.convert(postDTO);
-        	// Return result
-        	return Response.status(201).entity(post).build();
+
+        	// Populate and return result
+        	return Response.status(201).entity(generatePost(postDTO)).build();
 		}
 		catch (NotAuthorizedException bre) {
 			return Response.status(Response.Status.UNAUTHORIZED)
@@ -171,32 +171,9 @@ public final class PostsApiServiceImpl extends CommunityApiServiceImpl {
         		return responseUtils.notFound(1002L, null);
         	}
         	else {
-        		// Convert the result
-        		Post post = postConverter.convert(postDTO);
-        		// Get a DAO to look up member information
-        		MemberDAO memberDAO = DAOProvider.getDAO(MemberDAO.class);
-        		// Get the created by
-        		MemberDTO memberDTO = memberDAO.find(post.getCreatedBy().getId());
-        		// Convert to bean
-        		Member member = memberConverter.convert(memberDTO);
-        		// Assign it
-        		post.setCreatedBy(member);
-        		
-        		// Retrieve dit information
-        		if (post.getNumberOfTimesEdited() > 0) {
-        			// Get the created by
-            		memberDTO = memberDAO.find(post.getEditedBy().getId());
-            		// Convert to bean
-            		member = memberConverter.convert(memberDTO);
-            		// Assign it
-            		post.setEditedBy(member);
-        			// Get the edits
-        			List<PostEdit> edits = getEdits(postId);
-        			post.setEdits(edits);
-        		}
         		
         		// Return response
-        		return Response.status(200).entity(post).build();
+        		return Response.status(200).entity(generatePost(postDTO)).build();
         	}
 		}
 		catch (Exception e) {
@@ -327,8 +304,13 @@ public final class PostsApiServiceImpl extends CommunityApiServiceImpl {
             	postDAO.commitTransaction(true);
         	}
         	
-        	// Return result
-        	return Response.status(200).entity(post).build();
+        	// Return updated result
+        	return Response.status(200).entity(generatePost(postDAO.find(post.getId()))).build();
+		}
+		catch (NotAuthorizedException bre) {
+			return Response.status(Response.Status.UNAUTHORIZED)
+					.entity(bre.getCause())
+					.build();
 		}
 		catch (Exception e) {
 			Response response = ResponseUtils.serverError(e);
@@ -360,6 +342,7 @@ public final class PostsApiServiceImpl extends CommunityApiServiceImpl {
 			
 			// Get the DAO implementation
 			PostDAO postDAO = DAOProvider.getDAO(PostDAO.class);
+			
         	// Perform the delete
         	Integer count = postDAO.delete(id);
         	
@@ -369,6 +352,11 @@ public final class PostsApiServiceImpl extends CommunityApiServiceImpl {
         	else
         		// Return result
         		return Response.status(200).build();
+		}
+		catch (NotAuthorizedException bre) {
+			return Response.status(Response.Status.UNAUTHORIZED)
+					.entity(bre.getCause())
+					.build();
 		}
 		catch (Exception e) {
 			Response response = ResponseUtils.serverError(e);
@@ -413,6 +401,19 @@ public final class PostsApiServiceImpl extends CommunityApiServiceImpl {
         	// Convert the result
         	PostEditConverter converter = new PostEditConverter();
         	List<PostEdit> edits = converter.convert(editDTOs);
+        	
+        	// Add member to PostEdits
+        	for(PostEdit edit : edits) {
+        		// Get a DAO to look up member information
+        		MemberDAO memberDAO = DAOProvider.getDAO(MemberDAO.class);
+        		// Get the created by
+        		MemberDTO memberDTO = memberDAO.find(edit.getCreatedBy().getId());
+        		// Convert to bean
+        		Member member = memberConverter.convert(memberDTO);
+        		// Assign it
+        		edit.setCreatedBy(member);
+        	}
+        	
         	// Return response
         	return edits;
 		}
@@ -420,6 +421,34 @@ public final class PostsApiServiceImpl extends CommunityApiServiceImpl {
 			Response response = ResponseUtils.serverError(e);
 			throw new ServerErrorException(response);
 		}
+	}
+	
+	protected Post generatePost(PostDTO postDTO) throws SQLException {
+		// Convert the result
+		Post post = postConverter.convert(postDTO);
+		// Get a DAO to look up member information
+		MemberDAO memberDAO = DAOProvider.getDAO(MemberDAO.class);
+		// Get the created by
+		MemberDTO memberDTO = memberDAO.find(post.getCreatedBy().getId());
+		// Convert to bean
+		Member member = memberConverter.convert(memberDTO);
+		// Assign it
+		post.setCreatedBy(member);
+
+		// Retrieve dit information
+		if (post.getNumberOfTimesEdited() > 0) {
+			// Get the created by
+			memberDTO = memberDAO.find(post.getEditedBy().getId());
+			// Convert to bean
+			member = memberConverter.convert(memberDTO);
+			// Assign it
+			post.setEditedBy(member);
+			// Get the edits
+			List<PostEdit> edits = getEdits(post.getId());
+			post.setEdits(edits);
+		}
+
+		return post;
 	}
 	
 	protected PostEditDTO createEditPost(PostDTO postDTO) {

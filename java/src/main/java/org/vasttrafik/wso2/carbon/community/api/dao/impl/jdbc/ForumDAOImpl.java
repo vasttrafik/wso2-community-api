@@ -23,7 +23,7 @@ public final class ForumDAOImpl extends GenericDAO<ForumDTO> implements ForumDAO
 	private static final Log log = LogFactory.getLog(ForumDAOImpl.class);
 	
 	private final static String SQL_SELECT_LIST = 
-		"select a.com_id, a.com_category_id, a.com_name, a.com_desc, a.com_image_url, a.com_num_topics, a.com_num_posts, a.com_last_post_id";
+		"select a.com_id, a.com_category_id, b.com_name as com_category_name, a.com_name, a.com_desc, a.com_image_url, a.com_num_topics, a.com_num_posts, a.com_last_post_id";
 	
 	private final static String SQL_SELECT_WITH = 
 		"with com_forum_results as";
@@ -32,10 +32,10 @@ public final class ForumDAOImpl extends GenericDAO<ForumDTO> implements ForumDAO
 		"select com_id, com_category_id, com_name, com_desc, com_image_url, com_num_topics, com_num_posts, com_last_post_id from com_forum_results where row_num between ? and ?";
 
 	private final static String SQL_FIND_BY_ID = 
-		SQL_SELECT_LIST + " from com_forum a where a.com_id = ?";
+		SQL_SELECT_LIST + " from com_forum a, com_category b where a.com_id = ? and a.com_category_id = b.com_id";
 	
 	private final static String SQL_FIND_BY_NAME = 
-		SQL_SELECT_LIST + " from com_forum a where a.com_name = ?";
+		SQL_SELECT_LIST + " from com_forum a, com_category b where a.com_name = ? and a.com_category_id = b.com_id";
 	
 	private final static String SQL_INSERT = 
 		"insert into com_forum (com_category_id, com_name, com_desc, com_image_url) values (?, ?, ?, ?)";
@@ -224,9 +224,9 @@ public final class ForumDAOImpl extends GenericDAO<ForumDTO> implements ForumDAO
 				sql += SQL_ORDER_BY_ROWNUM; // Order the rows and add a row number column
 				
 			if (ifModifiedSince != null) // Need to join with com_post table to find forums updated after specified datetime?
-				sql += " from com_forum a, com_post b where a.com_category_id = ? and a.com_id = b.com_forum_id and b.com_create_date >= ?";
+				sql += " from com_forum a, com_post c where a.com_category_id = ? and a.com_category_id = b.com_id and a.com_id = c.com_forum_id and c.com_create_date >= ?";
 			else 
-				sql += " from com_forum a where a.com_category_id = ?";
+				sql += " from com_forum a, com_category b where a.com_category_id = ? and a.com_category_id = b.com_id";
 				
 			// Check if pagination is required
 			if (offset != null)  {
@@ -560,6 +560,7 @@ public final class ForumDAOImpl extends GenericDAO<ForumDTO> implements ForumDAO
 		forumDTO.setId(rs.getInt("com_id")); 						// java.lang.Integer
 		if (rs.wasNull()) { forumDTO.setId(null); }; 				// not primitive number => keep null value if any
 		forumDTO.setCategoryId(rs.getInt("com_category_id")); 		// java.lang.Integer
+		forumDTO.setCategoryName(rs.getString("com_category_name"));// java.lang.String
 		if (rs.wasNull()) { forumDTO.setCategoryId(null); }; 		// not primitive number => keep null value if any
 		forumDTO.setName(rs.getString("com_name")); 				// java.lang.String
 		forumDTO.setDesc(rs.getString("com_desc")); 				// java.lang.String

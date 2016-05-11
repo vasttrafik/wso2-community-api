@@ -78,7 +78,7 @@ public final class PostConverter {
 		if (postDTO.getEditedById() != null) {
 			Member editedBy = new Member();
 			editedBy.setId(postDTO.getEditedById());
-			post.setCreatedBy(editedBy);
+			post.setEditedBy(editedBy);
 		}
 		
 		Post.TypeEnum type = Post.TypeEnum.valueOf(postDTO.getType());

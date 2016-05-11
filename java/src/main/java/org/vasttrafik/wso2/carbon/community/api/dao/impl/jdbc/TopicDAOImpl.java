@@ -29,16 +29,19 @@ public final class TopicDAOImpl extends GenericDAO<TopicDTO> implements TopicDAO
 	private static final Log log = LogFactory.getLog(TopicDAOImpl.class);
 	
 	private final static String SQL_SELECT_LIST = 
-		"select a.com_id, c.com_id as com_category_id, c.com_name as com_category_name, a.com_forum_id, b.com_name as com_forum_name, a.com_subject, a.com_created_date, a.com_created_by_id, a.com_closed_date, a.com_closed_by_id, a.com_num_posts, a.com_num_views, a.com_num_answers, a.com_first_post_id, a.com_last_post_id, a.com_answer_post_id, a.com_is_deleted";
+		"select a.com_id, c.com_id as com_category_id, c.com_name as com_category_name, a.com_forum_id, b.com_name as com_forum_name, a.com_subject, a.com_created_date, a.com_last_post_date, a.com_created_by_id, a.com_closed_date, a.com_closed_by_id, a.com_num_posts, a.com_num_views, a.com_num_answers, a.com_first_post_id, a.com_last_post_id, a.com_answer_post_id, a.com_is_deleted";
 
 	private final static String SQL_SELECT_WITH = 
 		"with com_topic_results as";
 	
 	private final static String SQL_SELECT_WITH_ROWNUM = 
-		SQL_SELECT_LIST + " from com_topic_results where row_num between ? and ?";
+		" select * from com_topic_results where row_num between ? and ?";
+	
+	private final static String SQL_FIND_BY_FORUM_ID = 
+		SQL_SELECT_LIST + " from com_topic_last_post_view a, com_forum b, com_category c where a.com_forum_id = ? and a.com_forum_id = b.com_id and b.com_category_id = c.com_id and a.com_is_deleted != 1";
 	
 	private final static String SQL_FIND_BY_ID = 
-		SQL_SELECT_LIST + " from com_topic a, com_forum b, com_category c where a.com_id = ? and a.com_forum_id = b.com_id and b.com_category_id = c.com_id";
+		SQL_SELECT_LIST + " from com_topic_last_post_view a, com_forum b, com_category c where a.com_id = ? and a.com_forum_id = b.com_id and b.com_category_id = c.com_id and a.com_is_deleted != 1";
 	
 	private final static String SQL_INSERT = 
 		"insert into com_topic (com_forum_id, com_subject, com_created_by_id) values (?, ?, ?)";
@@ -56,10 +59,10 @@ public final class TopicDAOImpl extends GenericDAO<TopicDTO> implements TopicDAO
 		"select count(*) from com_topic where com_id = ?";
 	
 	private final static String SQL_ORDER_BY = 
-		" order by a.com_created_date asc";
+		" order by a.com_last_post_date desc";
 		
 	private final static String SQL_ORDER_BY_ROWNUM = 
-		", row_number() over (order by com_created_date asc) as row_num";
+		", row_number() over (order by com_last_post_date desc) as row_num";
 	
 	private static Map<String, String> columnMappings = null;
 
@@ -125,7 +128,7 @@ public final class TopicDAOImpl extends GenericDAO<TopicDTO> implements TopicDAO
 			if (ifModifiedSince != null) // Need to join with com_post table to find forums updated after specified datetime?
 				sql += " from com_topic a, com_post b where a.com_forum_id = ? and a.com_id = b.com_topic_id and b.com_created_date >= ?";
 			else 
-				sql += " from com_topic where com_forum_id = ?";
+				sql = SQL_FIND_BY_FORUM_ID;
 				
 			// Check if pagination is required
 			if (offset != null)  {
@@ -194,31 +197,37 @@ public final class TopicDAOImpl extends GenericDAO<TopicDTO> implements TopicDAO
 			
 		try {
 			// The basic SELECT is just a list of columns
-			String sql = SQL_SELECT_LIST;
-						
-			if (offset != null)
-				sql += SQL_ORDER_BY_ROWNUM; // Order the rows and add a row number column
+			String sql = "SELECT *";
 			
-			sql += " from com_topic_label_" + label + "_v";
+			if (offset != null) {
+				sql = "SELECT TOP (?) *";
+			}
+			
+			sql += " from com_topic_label_" + label + "_view a";
 			
 			// Check if pagination is required
 			if (offset != null)  {
-				sql = SQL_SELECT_WITH + "(" + sql + ")" + SQL_SELECT_WITH_ROWNUM;
+				
+				sql += " EXCEPT SELECT TOP (?) * from com_topic_label_" + label + "_view a";
+				
 			}
-			else {
+			
+			if(!"popular".equalsIgnoreCase(label)) {
 				// Add the ORDER BY clause
-				sql += SQL_ORDER_BY;
+				sql +=  SQL_ORDER_BY;
 			}
 				
 			// Get a connection
 			getConnection();
 			// Prepare the statement
 			ps = conn.prepareStatement(sql); 
+			
+			log.debug(sql);
 				
 			// If we have an offset and a limit value to bind, specify the values
 			if (offset != null) {
-				setValue(ps, 1,  offset);
-				setValue(ps, 2, (offset + limit - 1));
+				setValue(ps, 1, (offset + limit -1));
+				setValue(ps, 2, (offset -1));
 			}
 				
 			// Execute the query
@@ -414,6 +423,33 @@ public final class TopicDAOImpl extends GenericDAO<TopicDTO> implements TopicDAO
 	@Override
 	public int update(TopicDTO topicDTO) throws SQLException {
 		return super.doUpdate(topicDTO);
+	}
+	
+	public int incrementViews(TopicDTO topicDTO) throws SQLException {
+		int result = 0;
+		
+		try {
+			String sql = "update com_topic set com_num_views = com_num_views + 1 where com_id = ?";
+			
+			// Get a connection
+			getConnection();
+			// Prepare the statement
+			ps = conn.prepareStatement(sql); 
+			
+			// Bind the values
+			setValue(ps, 1, topicDTO.getId());
+			
+			result = ps.executeUpdate();
+		}
+		catch (SQLException e) {
+			log.error("Database error. TopicDAOImpl.updateViews could not execute query." + e.getMessage(), e);
+			throw e;
+		} 
+	    finally {
+			closeAll();
+		}
+			
+		return result;
 	}	
 	
     //----------------------------------------------------------------------
@@ -597,10 +633,11 @@ public final class TopicDAOImpl extends GenericDAO<TopicDTO> implements TopicDAO
 		if (rs.wasNull()) { topicDTO.setForumId(null); }; 			// not primitive number => keep null value if any
 		topicDTO.setForumName(rs.getString("com_forum_name"));		// java.lang.String
 		topicDTO.setSubject(rs.getString("com_subject")); 			// java.lang.String
-		topicDTO.setCreatedDate(rs.getDate("com_created_date")); 	// java.util.Date
+		topicDTO.setCreatedDate(rs.getTimestamp("com_created_date")); 	// java.util.Date
+		topicDTO.setLastPostDate(rs.getTimestamp("com_last_post_date")); 	// java.util.Date
 		topicDTO.setCreatedById(rs.getInt("com_created_by_id")); 	// java.lang.Integer
 		if (rs.wasNull()) { topicDTO.setCreatedById(null); }; 		// not primitive number => keep null value if any
-		topicDTO.setClosedDate(rs.getDate("com_closed_date")); 	    // java.util.Date
+		topicDTO.setClosedDate(rs.getTimestamp("com_closed_date")); 	    // java.util.Date
 		topicDTO.setClosedById(rs.getInt("com_closed_by_id")); 	    // java.lang.Integer
 		if (rs.wasNull()) { topicDTO.setClosedById(null); }; 		// not primitive number => keep null value if any
 		topicDTO.setNumPosts(rs.getShort("com_num_posts")); 		// java.lang.Short
@@ -645,6 +682,7 @@ public final class TopicDAOImpl extends GenericDAO<TopicDTO> implements TopicDAO
 	static {
 		columnMappings = new Hashtable<String, String>();
 		columnMappings.put("createDate", "com_created_date");
+		columnMappings.put("lastPostDate", "com_last_post_date");
 		columnMappings.put("createdBy", "com_created_by_id");
 		columnMappings.put("subject", "com_subject");
 		columnMappings.put("text", "com_text");

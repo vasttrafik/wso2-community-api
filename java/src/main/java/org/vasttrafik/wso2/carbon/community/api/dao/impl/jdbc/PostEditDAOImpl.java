@@ -258,7 +258,7 @@ public final class PostEditDAOImpl extends GenericDAO<PostEditDTO> implements Po
 		if (rs.wasNull()) { postEditDTO.setEditVersion(null); }; 		// not primitive number => keep null value if any
 		postEditDTO.setText(rs.getString("com_text")); 					// java.lang.String
 		postEditDTO.setTextFormat(rs.getString("com_text_format")); 	// java.lang.String
-		postEditDTO.setCreateDate(rs.getDate("com_created_date")); 		// java.util.Date
+		postEditDTO.setCreateDate(rs.getTimestamp("com_created_date")); 		// java.util.Date
 		postEditDTO.setCreatedById(rs.getInt("com_created_by_id")); 	// java.lang.Integer
 		if (rs.wasNull()) { postEditDTO.setCreatedById(null); }; 		// not primitive number => keep null value if any
 		return postEditDTO ;

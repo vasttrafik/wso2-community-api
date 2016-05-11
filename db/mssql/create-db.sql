@@ -118,7 +118,7 @@ CREATE TABLE COM_MEMBER (
   COM_ID               INT NOT NULL PRIMARY KEY,
   COM_USER_NAME        VARCHAR(255) NOT NULL,
   COM_EMAIL            VARCHAR(255) NOT NULL,            
-  COM_STATUS           VARCHAR(20) NOT NULL DEFAULT 'inactive',	
+  COM_STATUS           VARCHAR(20) NOT NULL DEFAULT 'active',	
   COM_SHOW_EMAIL       BIT DEFAULT 0,       			-- Privacy settings. If email should be displayed in forums
   COM_SHOW_RANKINGS    BIT DEFAULT 0,       			-- -"-. If rankings information should be displayed in forums
   COM_SIGNATURE        VARCHAR(64),             		-- -"-. Signature
@@ -371,6 +371,54 @@ CREATE VIEW COM_WATCH_VIEW AS
 	     COM_TOPIC b
    WHERE a.COM_TOPIC_ID = b.COM_ID;
 
+CREATE VIEW COM_TOPIC_LAST_POST_VIEW
+SELECT a.COM_ID, 
+       c.COM_ID           AS COM_CATEGORY_ID, 
+       c.COM_NAME         AS COM_CATEGORY_NAME, 
+       a.COM_FORUM_ID, 
+       b.COM_NAME         AS COM_FORUM_NAME, 
+       a.COM_SUBJECT, 
+       a.COM_CREATED_DATE, 
+       d.COM_CREATED_DATE AS COM_LAST_POST_DATE, 
+       a.COM_CREATED_BY_ID, 
+       a.COM_CLOSED_DATE, 
+       a.COM_CLOSED_BY_ID, 
+       a.COM_NUM_POSTS, 
+       a.COM_NUM_VIEWS, 
+       a.COM_NUM_ANSWERS, 
+       a.COM_FIRST_POST_ID, 
+       a.COM_LAST_POST_ID, 
+       a.COM_ANSWER_POST_ID, 
+       a.COM_IS_DELETED 
+FROM   COM_TOPIC a, 
+       COM_FORUM b, 
+       COM_CATEGORY c, 
+       COM_POST d 
+WHERE  a.COM_FORUM_ID = b.COM_ID 
+       AND b.COM_CATEGORY_ID = c.COM_ID 
+       AND a.COM_LAST_POST_ID = d.COM_ID 
+
+CREATE VIEW COM_TOPIC_LABEL_POPULAR_VIEW AS 
+	SELECT TOP 100 * 
+	FROM   COM_TOPIC_LAST_POST_VIEW
+	WHERE  COM_CATEGORY_ID != 1
+	AND		COM_IS_DELETED != 1
+	ORDER BY COM_NUM_POSTS DESC
+
+CREATE VIEW COM_TOPIC_LABEL_ANSWERED_VIEW AS 
+	SELECT 	* 
+	FROM   	COM_TOPIC_LAST_POST_VIEW
+	WHERE 	COM_ANSWER_POST_ID IS NOT NULL
+	AND		COM_IS_DELETED != 1
+	AND		COM_CATEGORY_ID != 1
+	
+CREATE VIEW COM_TOPIC_LABEL_UNANSWERED_VIEW AS 
+	SELECT 	* 
+	FROM   	COM_TOPIC_LAST_POST_VIEW
+	WHERE 	COM_ANSWER_POST_ID IS NULL
+	AND		COM_IS_DELETED != 1
+	AND		COM_CATEGORY_ID != 1
+	   
 --
 -- Add foreign key constraints
 --
@@ -734,29 +782,47 @@ CREATE TRIGGER DELETEPOSTTRIGGER ON DBO.COM_POST
 AS
   BEGIN
   
+    DECLARE @CommentToId INT, @NumAnswers INT;
+    DECLARE @Post CURSOR;
+  
+    SET @Post = CURSOR FOR
+      SELECT COM_COMMENT_TO_ID FROM DELETED;
+
+	OPEN @Post;
+    FETCH NEXT FROM @Post 
+      INTO @CommentToId;
+      
+	CLOSE @Post;
+    DEALLOCATE @Post;	
+	
+	IF @CommentToId IS NULL
+      SET @NumAnswers = 1;
+    ELSE		
+      SET @NumAnswers = 0;
+
+	-- Update number of posts and answers in the topic
+	UPDATE DBO.COM_TOPIC
+		SET COM_NUM_POSTS = COM_NUM_POSTS - 1, COM_NUM_ANSWERS = COM_NUM_ANSWERS - @NumAnswers
+	WHERE COM_ID = (
+		SELECT COM_TOPIC_ID
+		FROM DELETED
+	);
+  
+	-- Update number of posts in the forum
+	UPDATE DBO.COM_FORUM
+		SET COM_NUM_POSTS = COM_NUM_POSTS - 1
+	WHERE COM_ID = (
+		SELECT COM_FORUM_ID
+		FROM DELETED
+	);
+  
     -- Set flag to indicate that the post has been deleted
     UPDATE DBO.COM_POST
-       SET COM_IS_DELETED = 1
+       SET COM_IS_DELETED = 1, COM_EDIT_DATE = GETDATE()
      WHERE COM_ID = (
        SELECT COM_ID
          FROM DELETED
      );
-  
-    -- Update number of posts in the forum
-    UPDATE DBO.COM_FORUM
-	   SET COM_NUM_POSTS = COM_NUM_POSTS - 1
-	 WHERE COM_ID = (
-	   SELECT COM_FORUM_ID
-		 FROM DELETED
-	 );
-	   
-	-- Update number of posts in the topic
-	UPDATE DBO.COM_TOPIC
-	   SET COM_NUM_POSTS = COM_NUM_POSTS - 1
-	 WHERE COM_ID = (
-	   SELECT COM_TOPIC_ID
-		 FROM DELETED
-	 );
 
     --DELETE 
 	  --FROM DBO.COM_POST
@@ -822,10 +888,31 @@ CREATE TRIGGER DELETETOPICTRIGGER ON DBO.COM_TOPIC
   INSTEAD OF DELETE
 AS 
   BEGIN
+  
+    DECLARE @NumPosts INT;
+    DECLARE @Topic CURSOR;
+	
+	SET @Topic = CURSOR FOR
+    SELECT COM_NUM_POSTS FROM DELETED;
+	
+	OPEN @Topic;
+    FETCH NEXT FROM @Topic 
+      INTO @NumPosts;
+      
+	CLOSE @Topic;
+    DEALLOCATE @Topic;	
 	 
 	-- ADJUST THE NUMBER OF TOPICS IN THE FORUM
 	UPDATE COM_FORUM
 	   SET COM_NUM_TOPICS = COM_NUM_TOPICS - 1
+	 WHERE COM_ID = (
+       SELECT COM_FORUM_ID
+		 FROM DELETED
+	 );
+	 
+	-- ADJUST THE NUMBER OF POSTS IN THE FORUM
+	UPDATE COM_FORUM
+	   SET COM_NUM_POSTS = COM_NUM_POSTS - @NumPosts
 	 WHERE COM_ID = (
        SELECT COM_FORUM_ID
 		 FROM DELETED
@@ -846,6 +933,23 @@ AS
 	   SELECT COM_ID
 		 FROM DELETED
 	 );
+	 
+	-- If this topic contained the last post
+	-- update the forum to make it correct
+    UPDATE DBO.COM_FORUM
+       SET COM_LAST_POST_ID = (
+         SELECT TOP 1 COM_ID
+           FROM COM_POST
+          WHERE COM_FORUM_ID = (
+            SELECT COM_FORUM_ID
+              FROM DELETED
+          ) AND COM_IS_DELETED = 0
+          ORDER BY COM_CREATED_DATE DESC
+       )
+       WHERE COM_ID = (
+         SELECT COM_FORUM_ID
+           FROM DELETED
+       );
 	 
   END;
   

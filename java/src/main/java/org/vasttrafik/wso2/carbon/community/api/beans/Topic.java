@@ -22,6 +22,7 @@ public final class Topic  {
 	@NotNull(message = "{topic.subject.notnull}")
 	private String subject = null;
 	private Date createDate = null;
+	private Date lastPostDate = null;
 	private Member createdBy = null;
 	private List<Tag> tags = new ArrayList<Tag>();
 	@NotNull(message = "{topic.posts.notnull}")
@@ -102,6 +103,18 @@ public final class Topic  {
   
 	public void setCreateDate(Date createDate) {
 		this.createDate = createDate;
+	}
+
+	/**
+	 * Date and time when the last post as posted to this topic
+	 * This is only applicable from using view
+	 **/
+	public Date getLastPostDate() {
+		return lastPostDate;
+	}
+
+	public void setLastPostDate(Date lastPostDate) {
+		this.lastPostDate = lastPostDate;
 	}
 
 	/**

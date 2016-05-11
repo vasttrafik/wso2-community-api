@@ -14,6 +14,7 @@ public final class Forum  {
   
 	@NotNull(message = "{forum.category.notnull}")
 	private Integer categoryId = null;
+	private String categoryName = null;
 	private Integer id = null;
 	@NotNull(message = "{forum.name.notnull}")
 	private String name = null;
@@ -34,6 +35,17 @@ public final class Forum  {
   
 	public void setCategoryId(Integer categoryId) {
 		this.categoryId = categoryId;
+	}
+
+	/**
+	 * The category name this forum belongs to
+	 **/
+	public String getCategoryName() {
+		return categoryName;
+	}
+
+	public void setCategoryName(String categoryName) {
+		this.categoryName = categoryName;
 	}
 
 	/**

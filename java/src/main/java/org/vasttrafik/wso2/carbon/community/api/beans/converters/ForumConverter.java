@@ -31,6 +31,7 @@ public final class ForumConverter {
 		Forum forum = new Forum();
 		forum.setId(forumDTO.getId());
 		forum.setCategoryId(forumDTO.getCategoryId());
+		forum.setCategoryName(forumDTO.getCategoryName());
 		forum.setName(forumDTO.getName());
 		forum.setDescription(forumDTO.getDesc());
 		forum.setImageURL(forumDTO.getImageUrl());

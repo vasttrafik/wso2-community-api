@@ -34,6 +34,8 @@ public final class TopicDTO implements Serializable {
     private String subject;
     // DB : com_created_date datetime 
     private Date createdDate;
+    // DB : com_last_post_date datetime 
+    private Date lastPostDate;
     // DB : com_created_by_id int 
     private Integer createdById;
     // DB : com_num_posts smallint 
@@ -139,7 +141,16 @@ public final class TopicDTO implements Serializable {
     public Date getCreatedDate() {
         return this.createdDate;
     }
-    /**
+    
+    public Date getLastPostDate() {
+		return lastPostDate;
+	}
+
+	public void setLastPostDate(Date lastPostDate) {
+		this.lastPostDate = lastPostDate;
+	}
+
+	/**
      * Sets the createdById value
      * @param createdById The value to set.
      */

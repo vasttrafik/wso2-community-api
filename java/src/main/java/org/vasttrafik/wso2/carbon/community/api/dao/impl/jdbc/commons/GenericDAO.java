@@ -7,6 +7,7 @@ import javax.sql.DataSource;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -447,7 +448,7 @@ public abstract class GenericDAO<T> implements TransactionalDAO {
 	
 	protected void setValue(PreparedStatement ps, int i, java.util.Date value) throws SQLException {
 		if ( value != null ) {
-			ps.setDate(i, new java.sql.Date(value.getTime())); // Convert util.Date to sql.Date
+			ps.setTimestamp(i, new Timestamp(value.getTime())); // Convert util.Date to sql.Date
 		}
 		else {
 			ps.setNull(i, java.sql.Types.DATE); 

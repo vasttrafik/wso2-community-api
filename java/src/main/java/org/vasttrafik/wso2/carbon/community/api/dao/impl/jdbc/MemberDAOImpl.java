@@ -35,7 +35,7 @@ public final class MemberDAOImpl extends GenericDAO<MemberDTO> implements Member
 		SQL_SELECT_LIST + " from com_member where com_id = ?";
 
 	private final static String SQL_INSERT = 
-		"insert into com_member (com_id, com_user_name, com_email, com_status, com_show_email, com_show_rankings, com_signature, com_use_gravatar, com_gravatar_email, com_accept_all_msg, com_notify_email, com_notify_message, com_notify_text) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+		"insert into com_member (com_id, com_user_name, com_email, com_show_email, com_show_rankings, com_signature, com_use_gravatar, com_gravatar_email, com_accept_all_msg, com_notify_email, com_notify_message, com_notify_text) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
 	private final static String SQL_UPDATE = 
 		"update com_member set com_email = ?, com_status = ?, com_show_email = ?, com_show_rankings = ?, com_signature = ?, com_use_gravatar = ?, com_gravatar_email = ?, com_accept_all_msg = ?, com_notify_email = ?, com_notify_message = ?, com_notify_text = ? where com_id = ?";
@@ -325,7 +325,6 @@ public final class MemberDAOImpl extends GenericDAO<MemberDTO> implements Member
 		setValue(ps, i++, memberDTO.getId()) ; 							// "com_id" : java.lang.Integer
 		setValue(ps, i++, memberDTO.getUserName()) ; 					// "com_user_name" : java.lang.String
 		setValue(ps, i++, memberDTO.getEmail()) ; 						// "com_email" : java.lang.String
-		setValue(ps, i++, memberDTO.getStatus()) ; 						// "com_status" : java.lang.String
 		setValue(ps, i++, memberDTO.getShowEmail()) ; 					// "com_show_email" : java.lang.Boolean
 		setValue(ps, i++, memberDTO.getShowRankings()) ; 				// "com_show_rankings" : java.lang.Boolean
 		setValue(ps, i++, memberDTO.getSignature()) ; 					// "com_signature" : java.lang.String

@@ -61,7 +61,7 @@ public class QueryHelper {
 	}
 	
 	/**
-	 * Converet the conditions into SQL conditions in the format [column_name operator [?]] AND/OR [column_name operator [?]]
+	 * Convert the conditions into SQL conditions in the format [column_name operator [?]] AND/OR [column_name operator [?]]
 	 * @param columnMappings A map containing mappings from attribute names to column names
 	 * @return A string containing the conditions of the SQL query
 	 * @throws IllegalArgumentException

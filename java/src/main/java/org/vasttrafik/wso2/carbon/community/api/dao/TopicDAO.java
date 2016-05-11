@@ -97,6 +97,14 @@ public interface TopicDAO extends TransactionalDAO {
 	
     //----------------------------------------------------------------------
 	/**
+	 * Increments the number of views on a topic by one
+	 * @param topicDTO
+	 * @return
+	 */
+	public int incrementViews(TopicDTO topicDTO) throws SQLException;
+	
+    //----------------------------------------------------------------------
+	/**
 	 * Closes the topic
 	 * @param topicDTO
 	 * @return

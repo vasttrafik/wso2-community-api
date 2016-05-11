@@ -29,6 +29,7 @@ public final class TopicConverter {
 		
 		topic.setClosedDate(topicDTO.getClosedDate());
 		topic.setCreateDate(topicDTO.getCreatedDate());
+		topic.setLastPostDate(topicDTO.getLastPostDate());
 		topic.setCategoryId(topicDTO.getCategoryId());
 		topic.setCategoryName(topicDTO.getCategoryName());
 		topic.setForumId(topicDTO.getForumId());
@@ -70,6 +71,7 @@ public final class TopicConverter {
 		
 		topicDTO.setClosedDate(topic.getClosedDate());
 		topicDTO.setCreatedDate(topic.getCreateDate());
+		topicDTO.setLastPostDate(topic.getLastPostDate());
 		topicDTO.setForumId(topic.getForumId());
 		topicDTO.setId(topic.getId());
 		topicDTO.setIsDeleted(topic.getIsDeleted()); 

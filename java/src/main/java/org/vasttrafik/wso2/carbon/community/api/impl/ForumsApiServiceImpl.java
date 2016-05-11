@@ -16,16 +16,24 @@ import org.vasttrafik.wso2.carbon.common.api.beans.AuthenticatedUser;
 import org.vasttrafik.wso2.carbon.common.api.utils.ResponseUtils;
 import org.vasttrafik.wso2.carbon.community.api.beans.Forum;
 import org.vasttrafik.wso2.carbon.community.api.beans.ForumWatch;
+import org.vasttrafik.wso2.carbon.community.api.beans.Member;
+import org.vasttrafik.wso2.carbon.community.api.beans.Post;
 import org.vasttrafik.wso2.carbon.community.api.beans.Topic;
 import org.vasttrafik.wso2.carbon.community.api.beans.converters.ForumConverter;
 import org.vasttrafik.wso2.carbon.community.api.beans.converters.ForumWatchConverter;
+import org.vasttrafik.wso2.carbon.community.api.beans.converters.MemberConverter;
+import org.vasttrafik.wso2.carbon.community.api.beans.converters.PostConverter;
 import org.vasttrafik.wso2.carbon.community.api.beans.converters.TopicConverter;
 import org.vasttrafik.wso2.carbon.community.api.dao.ForumDAO;
 import org.vasttrafik.wso2.carbon.community.api.dao.ForumWatchDAO;
+import org.vasttrafik.wso2.carbon.community.api.dao.MemberDAO;
+import org.vasttrafik.wso2.carbon.community.api.dao.PostDAO;
 import org.vasttrafik.wso2.carbon.community.api.dao.TopicDAO;
 import org.vasttrafik.wso2.carbon.community.api.dao.commons.DAOProvider;
 import org.vasttrafik.wso2.carbon.community.api.model.ForumDTO;
 import org.vasttrafik.wso2.carbon.community.api.model.ForumWatchDTO;
+import org.vasttrafik.wso2.carbon.community.api.model.MemberDTO;
+import org.vasttrafik.wso2.carbon.community.api.model.PostDTO;
 import org.vasttrafik.wso2.carbon.community.api.model.TopicDTO;
 
 /**
@@ -124,7 +132,7 @@ public final class ForumsApiServiceImpl extends CommunityApiServiceImpl {
         	// Set the id
         	forum.setId(id);
         	// Return result
-        	return Response.status(201).entity(forum).build();
+        	return Response.status(201).entity(getForum(id).getEntity()).build();
 		}
 		catch (SQLIntegrityConstraintViolationException icve) {
 			log.error(icve.getMessage());
@@ -147,6 +155,7 @@ public final class ForumsApiServiceImpl extends CommunityApiServiceImpl {
 	 * @return
 	 * @throws ServerErrorException If internal error occurs
 	 */
+	@SuppressWarnings("unchecked")
 	public Response getForum(Integer id) 
     	throws ServerErrorException
     {
@@ -163,6 +172,11 @@ public final class ForumsApiServiceImpl extends CommunityApiServiceImpl {
         	else {
         		// Convert to bean
         		Forum forum = forumConverter.convert(forumDTO);
+        		
+        		List<Topic> topics = (List<Topic>)getTopics(null, forum.getId(), null, null).getEntity();
+        		
+        		forum.setTopics(topics);
+        		
         		// Return result
         		return Response.status(200).entity(forum).build();
         	}
@@ -193,6 +207,8 @@ public final class ForumsApiServiceImpl extends CommunityApiServiceImpl {
 			if (!isAdmin())
 				return responseUtils.notAuthorizedError(1104L, null);
 			
+			// Set resource id
+			forum.setId(id);
 			// Convert the category
         	ForumDTO forumDTO = forumConverter.convert(forum);
 			// Get the DAO implementation
@@ -205,7 +221,7 @@ public final class ForumsApiServiceImpl extends CommunityApiServiceImpl {
         		return responseUtils.notFound(1002L, null);
         	else
         		// Return result
-        		return Response.status(200).entity(forum).build();
+        		return Response.status(200).entity(getForum(id).getEntity()).build();
 		}
 		catch (NotAuthorizedException bre) {
 			return Response.status(Response.Status.UNAUTHORIZED).entity(bre.getCause()).build();
@@ -281,6 +297,34 @@ public final class ForumsApiServiceImpl extends CommunityApiServiceImpl {
 			List<TopicDTO> topicDTOs = topicDAO.findByForum(forumId, isoDate, offset, limit);
 			// Convert the result
 			List<Topic> topics = new TopicConverter().convert(topicDTOs);
+			
+			// Get the DAO implementations
+        	MemberDAO memberDAO = DAOProvider.getDAO(MemberDAO.class);
+        	PostDAO postDAO = DAOProvider.getDAO(PostDAO.class);
+    		
+    		for(Topic topic : topics) {
+    			// Get the member that created the post
+	    		MemberDTO memberDTO = memberDAO.find(topic.getCreatedBy().getId());
+	    		// Convert
+	    		Member member = new MemberConverter().convert(memberDTO);
+	    		// Assign the member to the post
+	    		topic.setCreatedBy(member);
+	    		
+	    		// Get the first post from id
+	    		PostDTO postDTO = postDAO.find(topic.getFirstPost().getId());
+	    		// Convert
+	    		Post post = new PostConverter().convert(postDTO);
+	    		// Assign the post to the topic
+	    		topic.setFirstPost(post);
+	    		
+	    		// Get the last post from id
+	    		postDTO = postDAO.find(topic.getLastPost().getId());
+	    		// Convert
+	    		post = new PostConverter().convert(postDTO);
+	    		// Assign the post to the topic
+	    		topic.setLastPost(post);
+    		}
+			
 			// Return the result
 			return Response.status(200).entity(topics).build();
 		}

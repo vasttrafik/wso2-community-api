@@ -56,7 +56,7 @@ public final class MemberConverter {
     	memberDTO.setSignature(member.getSignature());
     	memberDTO.setUseGravatar(member.getUseGravatar());
     	memberDTO.setUserName(member.getUserName());
-    	memberDTO.setStatus(member.getStatus().toString());
+    	memberDTO.setStatus(member.getStatus() != null ? member.getStatus().toString() : null);
     	return memberDTO;
     }
 }
