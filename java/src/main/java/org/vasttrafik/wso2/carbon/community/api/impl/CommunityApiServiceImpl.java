@@ -50,6 +50,7 @@ public class CommunityApiServiceImpl extends AbstractApiServiceImpl {
 			String language = System.getProperty("user.language");
 			
 			// Create Locale
+			@SuppressWarnings("unused")
 			Locale locale = new Locale(language, country);
 			
 			// Load the resource bundle

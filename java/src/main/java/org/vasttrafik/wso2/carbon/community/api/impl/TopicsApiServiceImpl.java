@@ -58,6 +58,7 @@ public class TopicsApiServiceImpl extends CommunityApiServiceImpl {
 	private static final String[] actions = {"subject", "close", "tag"};
 	private static final String[] labels = {"popular", "recent", "answered", "unanswered", "votes"};
 	
+	@SuppressWarnings("unused")
 	private static final Log log = LogFactory.getLog(TopicsApiServiceImpl.class);
 	
 	/**

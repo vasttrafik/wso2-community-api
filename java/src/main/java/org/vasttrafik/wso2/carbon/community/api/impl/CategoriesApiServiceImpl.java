@@ -42,6 +42,7 @@ public final class CategoriesApiServiceImpl extends CommunityApiServiceImpl {
 	/**
 	 * Logger
 	 */
+	@SuppressWarnings("unused")
 	private static final Log log = LogFactory.getLog(CategoriesApiServiceImpl.class);
 	
 	/**

@@ -19,6 +19,7 @@ import org.vasttrafik.wso2.carbon.identity.oauth.authcontext.JWTTokenGenerator;
  * @author Lars Andersson
  *
  */
+@SuppressWarnings("unused")
 public final class AuthenticationApiServiceImpl extends CommunityApiServiceImpl {
 
 	private static JWTTokenGenerator tokenGenerator = new JWTTokenGenerator();

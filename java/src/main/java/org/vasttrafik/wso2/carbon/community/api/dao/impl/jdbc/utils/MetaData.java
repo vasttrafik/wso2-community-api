@@ -23,6 +23,7 @@ import org.apache.commons.logging.LogFactory;
  */
 public class MetaData {
 	
+	@SuppressWarnings("unused")
 	private static final Log log = LogFactory.getLog(MetaData.class);
 	
 	/**
@@ -71,6 +72,7 @@ public class MetaData {
 		/**
 		 * Table name
 		 */
+		@SuppressWarnings("unused")
 		private String name;
 		/**
 		 * Maps column names to columns

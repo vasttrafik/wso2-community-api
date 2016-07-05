@@ -19,6 +19,7 @@ import org.vasttrafik.wso2.carbon.community.api.model.VoteDTO;
  * @author Lars Andersson
  *
  */
+@SuppressWarnings("unused")
 public final class VoteDAOImpl extends GenericDAO<VoteDTO> implements VoteDAO {
 	
 	private static final Log log = LogFactory.getLog(VoteDAOImpl.class);
