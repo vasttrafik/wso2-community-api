@@ -114,6 +114,10 @@ public final class PostsApiServiceImpl extends CommunityApiServiceImpl {
 			// Authorize. May throw NotAuthorizedException
 			authorize(authorization);
 			
+			//TODO change this when opening up community 
+			if (!isAdmin())
+				return responseUtils.notAuthorizedError(1104L, null);
+			
 			// Only admins may create posts as html
 			if (post.getTextFormat() == Post.FormatEnum.html && !isAdmin())
 				throw new BadRequestException();

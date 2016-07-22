@@ -134,6 +134,11 @@ public class TopicsApiServiceImpl extends CommunityApiServiceImpl {
 			// Authorize. May throw NotAuthorizedException
 			AuthenticatedUser user = authorize(authorization);
 			
+			
+			//TODO change this when opening up community 
+			if (!isAdmin())
+				return responseUtils.notAuthorizedError(1104L, null);
+			
 			// Start by making sure there is a question in the array of posts
 			Post post = getQuestion(topic);
 			// Convert the topic
@@ -286,6 +291,10 @@ public class TopicsApiServiceImpl extends CommunityApiServiceImpl {
 			// Authorize. May throw NotAuthorizedException
 			AuthenticatedUser user = authorize(authorization);
 			
+			//TODO change this when opening up community 
+			if (!isAdmin())
+				return responseUtils.notAuthorizedError(1104L, null);
+			
 			// Make sure the action parameter is set and valid
 			responseUtils.checkParameter(
 					"action", 
@@ -353,7 +362,7 @@ public class TopicsApiServiceImpl extends CommunityApiServiceImpl {
 						
 			// Topic can only be deleted by an admin or the creator of the topic if no replies have been posted
 			// TO-DO: Implement check if user created topic and no replies have been posted
-			if (!isAdmin() && !isOwnerOrAdmin(topicId))
+			if (!isAdmin())
 				return responseUtils.notAuthorizedError(1104L, null);
 			
 			// Get the DAO implementation
