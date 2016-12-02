@@ -2,6 +2,7 @@ package org.vasttrafik.wso2.carbon.community.api.impl;
 
 import java.sql.SQLIntegrityConstraintViolationException;
 import java.text.ParseException;
+import java.util.Iterator;
 import java.util.List;
 
 import javax.ws.rs.BadRequestException;
@@ -17,22 +18,26 @@ import org.vasttrafik.wso2.carbon.common.api.utils.ResponseUtils;
 import org.vasttrafik.wso2.carbon.community.api.beans.Forum;
 import org.vasttrafik.wso2.carbon.community.api.beans.ForumWatch;
 import org.vasttrafik.wso2.carbon.community.api.beans.Member;
+import org.vasttrafik.wso2.carbon.community.api.beans.MemberRanking;
 import org.vasttrafik.wso2.carbon.community.api.beans.Post;
 import org.vasttrafik.wso2.carbon.community.api.beans.Topic;
 import org.vasttrafik.wso2.carbon.community.api.beans.converters.ForumConverter;
 import org.vasttrafik.wso2.carbon.community.api.beans.converters.ForumWatchConverter;
 import org.vasttrafik.wso2.carbon.community.api.beans.converters.MemberConverter;
+import org.vasttrafik.wso2.carbon.community.api.beans.converters.MemberRankingConverter;
 import org.vasttrafik.wso2.carbon.community.api.beans.converters.PostConverter;
 import org.vasttrafik.wso2.carbon.community.api.beans.converters.TopicConverter;
 import org.vasttrafik.wso2.carbon.community.api.dao.ForumDAO;
 import org.vasttrafik.wso2.carbon.community.api.dao.ForumWatchDAO;
 import org.vasttrafik.wso2.carbon.community.api.dao.MemberDAO;
+import org.vasttrafik.wso2.carbon.community.api.dao.MemberRankingDAO;
 import org.vasttrafik.wso2.carbon.community.api.dao.PostDAO;
 import org.vasttrafik.wso2.carbon.community.api.dao.TopicDAO;
 import org.vasttrafik.wso2.carbon.community.api.dao.commons.DAOProvider;
 import org.vasttrafik.wso2.carbon.community.api.model.ForumDTO;
 import org.vasttrafik.wso2.carbon.community.api.model.ForumWatchDTO;
 import org.vasttrafik.wso2.carbon.community.api.model.MemberDTO;
+import org.vasttrafik.wso2.carbon.community.api.model.MemberRankingDTO;
 import org.vasttrafik.wso2.carbon.community.api.model.PostDTO;
 import org.vasttrafik.wso2.carbon.community.api.model.TopicDTO;
 
@@ -93,6 +98,41 @@ public final class ForumsApiServiceImpl extends CommunityApiServiceImpl {
         	}
         	
         	List<Forum> forums = forumConverter.convert(forumDTOs);
+        	
+        	MemberDAO memberDAO = DAOProvider.getDAO(MemberDAO.class);
+        	PostDAO postDAO = DAOProvider.getDAO(PostDAO.class);
+        	
+			for(Iterator<Forum> itf = forums.iterator(); itf.hasNext();) {
+				
+				Forum forum = itf.next();
+				
+				if(forum.getLastPost() != null) {
+					// Get the last post from id
+		    		PostDTO postDTO = postDAO.find(forum.getLastPost().getId());
+		    		// Convert
+		    		Post post = new PostConverter().convert(postDTO);
+		    		// Get the member that created the post
+		    		MemberDTO memberDTO = memberDAO.find(post.getCreatedBy().getId());
+		    		// Convert
+		    		Member member = new MemberConverter().convert(memberDTO);
+		    		
+		    		// Get the DAO implementation
+	                MemberRankingDAO rankingDAO = DAOProvider.getDAO(MemberRankingDAO.class);
+	            	// Get rankings List<MemberRanking>
+	            	List<MemberRankingDTO> rankingDTOs = rankingDAO.findByMember(member.getId());
+	            	// Convert to bean
+	            	MemberRankingConverter converter = new MemberRankingConverter();
+	            	List<MemberRanking> rankings = converter.convert(rankingDTOs);
+	            	// Assign the value
+	            	member.setRankings(rankings);
+		    		
+		    		// Assign the member to the post
+		    		post.setCreatedBy(member);
+		    		// Assign the post to the forum
+		    		forum.setLastPost(post);
+				}
+			}
+        	
         	return Response.status(200).entity(forums).build();
 		}
 		catch (BadRequestException bre) {
@@ -307,6 +347,17 @@ public final class ForumsApiServiceImpl extends CommunityApiServiceImpl {
 	    		MemberDTO memberDTO = memberDAO.find(topic.getCreatedBy().getId());
 	    		// Convert
 	    		Member member = new MemberConverter().convert(memberDTO);
+	    		
+	    		// Get the DAO implementation
+                MemberRankingDAO rankingDAO = DAOProvider.getDAO(MemberRankingDAO.class);
+            	// Get rankings List<MemberRanking>
+            	List<MemberRankingDTO> rankingDTOs = rankingDAO.findByMember(member.getId());
+            	// Convert to bean
+            	MemberRankingConverter converter = new MemberRankingConverter();
+            	List<MemberRanking> rankings = converter.convert(rankingDTOs);
+            	// Assign the value
+            	member.setRankings(rankings);
+	    		
 	    		// Assign the member to the post
 	    		topic.setCreatedBy(member);
 	    		
@@ -375,8 +426,6 @@ public final class ForumsApiServiceImpl extends CommunityApiServiceImpl {
 			return Response.status(Response.Status.UNAUTHORIZED).entity(bre.getCause()).build();
 		}
 		catch (SQLIntegrityConstraintViolationException icve) {
-			// Konstruera ett felobjekt Error och baka in i felet
-			// Om detta inte funkar, kolla på http://stackoverflow.com/questions/1988570/how-to-catch-a-specific-exception-in-jdbc
 			throw new NotFoundException();
 		}
 		catch (Exception e) {
