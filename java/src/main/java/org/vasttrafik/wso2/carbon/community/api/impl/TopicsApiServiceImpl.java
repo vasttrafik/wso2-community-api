@@ -2,6 +2,7 @@ package org.vasttrafik.wso2.carbon.community.api.impl;
 
 import java.sql.SQLIntegrityConstraintViolationException;
 import java.text.ParseException;
+import java.util.ArrayList;
 import java.util.List;
 
 import javax.ws.rs.BadRequestException;
@@ -17,23 +18,35 @@ import org.vasttrafik.wso2.carbon.common.api.utils.ResponseUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.vasttrafik.wso2.carbon.community.api.beans.Member;
+import org.vasttrafik.wso2.carbon.community.api.beans.MemberRanking;
 import org.vasttrafik.wso2.carbon.community.api.beans.Post;
+import org.vasttrafik.wso2.carbon.community.api.beans.PostEdit;
 import org.vasttrafik.wso2.carbon.community.api.beans.Topic;
 import org.vasttrafik.wso2.carbon.community.api.beans.TopicWatch;
 import org.vasttrafik.wso2.carbon.community.api.beans.Vote;
 import org.vasttrafik.wso2.carbon.community.api.beans.converters.MemberConverter;
+import org.vasttrafik.wso2.carbon.community.api.beans.converters.MemberRankingConverter;
 import org.vasttrafik.wso2.carbon.community.api.beans.converters.PostConverter;
+import org.vasttrafik.wso2.carbon.community.api.beans.converters.PostEditConverter;
 import org.vasttrafik.wso2.carbon.community.api.beans.converters.TopicConverter;
 import org.vasttrafik.wso2.carbon.community.api.beans.converters.TopicWatchConverter;
 import org.vasttrafik.wso2.carbon.community.api.beans.converters.VoteConverter;
+import org.vasttrafik.wso2.carbon.community.api.dao.CategoryDAO;
+import org.vasttrafik.wso2.carbon.community.api.dao.ForumDAO;
 import org.vasttrafik.wso2.carbon.community.api.dao.MemberDAO;
+import org.vasttrafik.wso2.carbon.community.api.dao.MemberRankingDAO;
 import org.vasttrafik.wso2.carbon.community.api.dao.PostDAO;
+import org.vasttrafik.wso2.carbon.community.api.dao.PostEditDAO;
 import org.vasttrafik.wso2.carbon.community.api.dao.TopicDAO;
 import org.vasttrafik.wso2.carbon.community.api.dao.TopicWatchDAO;
 import org.vasttrafik.wso2.carbon.community.api.dao.VoteDAO;
 import org.vasttrafik.wso2.carbon.community.api.dao.commons.DAOProvider;
+import org.vasttrafik.wso2.carbon.community.api.model.CategoryDTO;
+import org.vasttrafik.wso2.carbon.community.api.model.ForumDTO;
 import org.vasttrafik.wso2.carbon.community.api.model.MemberDTO;
+import org.vasttrafik.wso2.carbon.community.api.model.MemberRankingDTO;
 import org.vasttrafik.wso2.carbon.community.api.model.PostDTO;
+import org.vasttrafik.wso2.carbon.community.api.model.PostEditDTO;
 import org.vasttrafik.wso2.carbon.community.api.model.TopicDTO;
 import org.vasttrafik.wso2.carbon.community.api.model.TopicWatchDTO;
 import org.vasttrafik.wso2.carbon.community.api.model.VoteDTO;
@@ -49,6 +62,16 @@ public class TopicsApiServiceImpl extends CommunityApiServiceImpl {
 	 * A topic converter
 	 */
 	private TopicConverter topicConverter = new TopicConverter();
+	
+	/**
+	 * Converting between member bean and DTO
+	 */
+	private MemberConverter memberConverter = new MemberConverter();
+
+	/**
+	 * Converting between vote bean and DTO
+	 */
+	private VoteConverter voteConverter = new VoteConverter();
 	
 	/**
 	 * A post converter
@@ -79,7 +102,8 @@ public class TopicsApiServiceImpl extends CommunityApiServiceImpl {
     		String label,
     		String query,
     		Integer offset,
-    		Integer limit) 
+    		Integer limit,
+    		boolean setInfo) 
     	throws BadRequestException, ServerErrorException 
     {
 		try {
@@ -105,6 +129,38 @@ public class TopicsApiServiceImpl extends CommunityApiServiceImpl {
         	}
         	
         	List<Topic> topics = topicConverter.convert(topicDTOs);
+        	
+        	if(setInfo) {
+            	for(Topic topic : topics) {
+            		
+            		// Get the DAO implementation
+                	MemberDAO memberDAO = DAOProvider.getDAO(MemberDAO.class);
+                	// Get the member that created the topic
+            		MemberDTO memberDTO = memberDAO.find(topic.getCreatedBy().getId());
+            		// Convert
+            		Member member = new MemberConverter().convertPublic(memberDTO);
+            		
+            		// Get the DAO implementation
+                    MemberRankingDAO rankingDAO = DAOProvider.getDAO(MemberRankingDAO.class);
+                	// Get rankings List<MemberRanking>
+                	List<MemberRankingDTO> rankingDTOs = rankingDAO.findByMember(member.getId());
+                	// Convert to bean
+                	MemberRankingConverter converter = new MemberRankingConverter();
+                	List<MemberRanking> rankings = converter.convert(rankingDTOs);
+                	// Assign the value
+                	member.setRankings(rankings);
+    	    		
+    	    		// Assign the member to the post
+    	    		topic.setCreatedBy(member);
+            		
+            		@SuppressWarnings("unchecked")
+        			List<Post> posts = (List<Post>)getPosts(null, topic.getId(), null, null).getEntity();
+
+            		topic.setFirstPost(posts.get(0));
+            		topic.setLastPost(posts.get(posts.size()-1));
+            	}       		
+        	}
+        	
         	return Response.status(200).entity(topics).build();
 		}
 		catch (BadRequestException bre) {
@@ -133,16 +189,28 @@ public class TopicsApiServiceImpl extends CommunityApiServiceImpl {
 		try {
 			// Authorize. May throw NotAuthorizedException
 			AuthenticatedUser user = authorize(authorization);
-			
-			
-			//TODO change this when opening up community 
-			if (!isAdmin())
+				
+			if (!isOwnerOrAdmin(user.getUserId()))
 				return responseUtils.notAuthorizedError(1104L, null);
 			
 			// Start by making sure there is a question in the array of posts
 			Post post = getQuestion(topic);
 			// Convert the topic
 			TopicDTO topicDTO = topicConverter.convert(topic);
+			
+			// Get the DAO implementation
+        	ForumDAO forumDAO = DAOProvider.getDAO(ForumDAO.class);
+        	// Lookup the category
+        	ForumDTO forumDTO = forumDAO.find(topicDTO.getForumId());
+        	
+			// Get the DAO implementation
+	        CategoryDAO categoryDAO = DAOProvider.getDAO(CategoryDAO.class);
+	        // Lookup the category
+	        CategoryDTO categoryDTO = categoryDAO.find(forumDTO.getCategoryId());
+	        
+	        if(!categoryDTO.getIsPublic() && !isAdmin())
+	        	return responseUtils.notAuthorizedError(1104L, null);
+			
 			// Convert the post to a DTO
 			PostDTO postDTO = postConverter.convert(post);
 			
@@ -189,7 +257,7 @@ public class TopicsApiServiceImpl extends CommunityApiServiceImpl {
         	topicDAO.commitTransaction(true);
         	// Get the created topic
         	
-        	return Response.status(201).entity(getTopic(topicId).getEntity()).build();
+        	return Response.status(201).entity(getTopic(topicId, true).getEntity()).build();
 		}
 		catch (NotAuthorizedException bre) {
 			return Response.status(Response.Status.UNAUTHORIZED)
@@ -214,7 +282,7 @@ public class TopicsApiServiceImpl extends CommunityApiServiceImpl {
 	 * @throws NotFoundException
 	 * @throws ServerErrorException
 	 */
-	public Response getTopic(Long id) 
+	public Response getTopic(Long id, boolean includePosts) 
     	throws ServerErrorException 
     {
 		try {
@@ -236,28 +304,46 @@ public class TopicsApiServiceImpl extends CommunityApiServiceImpl {
             	// Get the member that created the topic
         		MemberDTO memberDTO = memberDAO.find(topic.getCreatedBy().getId());
         		// Convert
-        		Member member = new MemberConverter().convert(memberDTO);
-        		// Assign the member to the topic
-        		topic.setCreatedBy(member);
+        		Member member = new MemberConverter().convertPublic(memberDTO);
+        		
+        		// Get the DAO implementation
+                MemberRankingDAO rankingDAO = DAOProvider.getDAO(MemberRankingDAO.class);
+            	// Get rankings List<MemberRanking>
+            	List<MemberRankingDTO> rankingDTOs = rankingDAO.findByMember(member.getId());
+            	// Convert to bean
+            	MemberRankingConverter converter = new MemberRankingConverter();
+            	List<MemberRanking> rankings = converter.convert(rankingDTOs);
+            	// Assign the value
+            	member.setRankings(rankings);
+	    		
+	    		// Assign the member to the post
+	    		topic.setCreatedBy(member);
         		
         		if (topic.getClosedBy() != null) {
         			// Get the member that closed the topic
             		memberDTO = memberDAO.find(topic.getClosedBy().getId());
             		// Convert
-            		member = new MemberConverter().convert(memberDTO);
+            		member = new MemberConverter().convertPublic(memberDTO);
+            		
+                	rankingDTOs = rankingDAO.findByMember(member.getId());
+                	// Convert to bean
+                	rankings = converter.convert(rankingDTOs);
+                	// Assign the value
+                	member.setRankings(rankings);
+            		
             		// Assign the member to the topic
             		topic.setClosedBy(member);
         		}
         		
-        		// TO-DO: Get all posts, then set first and last post accordingly
-        		
-        		// Update number of view for each get request
-        		topicDAO.incrementViews(topicDTO);
-        		
         		@SuppressWarnings("unchecked")
 				List<Post> posts = (List<Post>)getPosts(null, topic.getId(), null, null).getEntity();
         		
-        		topic.setPosts(posts);
+        		if(includePosts) {
+            		// Update number of view for each get request
+            		topicDAO.incrementViews(topicDTO);
+            		topic.setPosts(posts);
+        		}
+
         		topic.setFirstPost(posts.get(0));
         		topic.setLastPost(posts.get(posts.size()-1));
         		
@@ -290,9 +376,13 @@ public class TopicsApiServiceImpl extends CommunityApiServiceImpl {
 		try {
 			// Authorize. May throw NotAuthorizedException
 			AuthenticatedUser user = authorize(authorization);
-			
-			//TODO change this when opening up community 
-			if (!isAdmin())
+
+			// Get the DAO implementation
+			TopicDAO topicDAO = DAOProvider.getDAO(TopicDAO.class);
+			int topicCreatedById = topicDAO.find(id).getCreatedById();
+
+			// Posts may only be updated by admins or the user that created it
+			if (!isOwnerOrAdmin(user.getUserId()) && (!isAdmin() && user.getUserId() != topicCreatedById))
 				return responseUtils.notAuthorizedError(1104L, null);
 			
 			// Make sure the action parameter is set and valid
@@ -304,8 +394,6 @@ public class TopicsApiServiceImpl extends CommunityApiServiceImpl {
 			
 			// Convert the topic
         	TopicDTO topicDTO = topicConverter.convert(topic);
-			// Get the DAO implementation
-        	TopicDAO topicDAO = DAOProvider.getDAO(TopicDAO.class);
         	
         	Integer count = null;
         	
@@ -358,15 +446,20 @@ public class TopicsApiServiceImpl extends CommunityApiServiceImpl {
     {
 		try {
 			// Authorize. May throw NotAuthorizedException
-			authorize(authorization);
+			AuthenticatedUser user = authorize(authorization);
 						
-			// Topic can only be deleted by an admin or the creator of the topic if no replies have been posted
-			// TO-DO: Implement check if user created topic and no replies have been posted
-			if (!isAdmin())
-				return responseUtils.notAuthorizedError(1104L, null);
-			
 			// Get the DAO implementation
 			TopicDAO topicDAO = DAOProvider.getDAO(TopicDAO.class);
+			TopicDTO topicDTO = topicDAO.find(topicId);
+			int topicCreatedById = topicDTO.getCreatedById();
+
+			// Posts may only be updated by admins or the user that created it
+			if (!isOwnerOrAdmin(user.getUserId()) && (!isAdmin() && user.getUserId() != topicCreatedById))
+				return responseUtils.notAuthorizedError(1104L, null);
+			
+			if(topicDTO.getNumPosts() > 1)
+				return responseUtils.badRequest(1208L, null);
+			
         	// Perform the delete
         	Integer count = topicDAO.delete(topicId);
         	
@@ -416,23 +509,91 @@ public class TopicsApiServiceImpl extends CommunityApiServiceImpl {
 			
 			// Get the DAO implementation
         	MemberDAO memberDAO = DAOProvider.getDAO(MemberDAO.class);
-			
+        	
+        	// Get the DAO implementation
+        	VoteDAO voteDAO = DAOProvider.getDAO(VoteDAO.class);
+        	
 			for(Post post : posts) {
 				// Get the member that created the post
 	    		MemberDTO memberDTO = memberDAO.find(post.getCreatedBy().getId());
 	    		// Convert
-	    		Member member = new MemberConverter().convert(memberDTO);
+	    		Member member = memberConverter.convertPublic(memberDTO);
+	    		
+	    		// Get the DAO implementation
+                MemberRankingDAO rankingDAO = DAOProvider.getDAO(MemberRankingDAO.class);
+            	// Get rankings List<MemberRanking>
+            	List<MemberRankingDTO> rankingDTOs = rankingDAO.findByMember(member.getId());
+            	// Convert to bean
+            	MemberRankingConverter converter = new MemberRankingConverter();
+            	List<MemberRanking> rankings = converter.convert(rankingDTOs);
+            	// Assign the value
+            	member.setRankings(rankings);
+	    		
 	    		// Assign the member to the post
 	    		post.setCreatedBy(member);
+	    		
+				// Retrieve individual votes for this post
+				List<VoteDTO> voteDTOs = voteDAO.findByPost(post.getId());
+
+				List<Vote> votes = new ArrayList<Vote>();
+				for (VoteDTO voteDTO : voteDTOs) {
+					votes.add(voteConverter.convert(voteDTO));
+				}
+
+				post.setVotes(votes);
+	    		
+        		// Set edit info
+        		if(post.getNumberOfTimesEdited() > 0) {
+        			post.setEdits(getEdits(post.getId()));
+
+        			// Get a DAO to look up member information
+            		memberDAO = DAOProvider.getDAO(MemberDAO.class);
+            		// Get the created by
+            		memberDTO = memberDAO.find(post.getEditedBy().getId());
+            		// Convert to bean
+            		member = memberConverter.convertPublic(memberDTO);
+            		// Assign it
+            		post.setEditedBy(member);
+        		}	
 			}
 			
 			// Return the result
 			return Response.status(200).entity(posts).build();
 			
-			// TO-DO:Fyll på varje post med nödvändig info (created by, comment to?)
 		}
 		catch (ParseException pe) {
 			return responseUtils.badRequest(1001L, new Object[][]{{ifModifiedSince, "If-Modified-Since"}});
+		}
+		catch (Exception e) {
+			Response response = ResponseUtils.serverError(e);
+			throw new ServerErrorException(response);
+		}
+	}
+	
+	protected List<PostEdit> getEdits(Long postId) throws ServerErrorException {
+		try {
+			// Get the DAO implementation
+        	PostEditDAO postDAO = DAOProvider.getDAO(PostEditDAO.class);
+        	// Perform the search
+        	List<PostEditDTO> editDTOs = postDAO.findByPost(postId);
+        	// Convert the result
+        	PostEditConverter converter = new PostEditConverter();
+        	List<PostEdit> edits = converter.convert(editDTOs);
+        	
+        	// Add member to PostEdits
+        	for(PostEdit edit : edits) {
+        		// Get a DAO to look up member information
+        		MemberDAO memberDAO = DAOProvider.getDAO(MemberDAO.class);
+        		// Get the created by
+        		MemberDTO memberDTO = memberDAO.find(edit.getCreatedBy().getId());
+        		// Convert to bean
+        		Member member = memberConverter.convertPublic(memberDTO);
+        		// Assign it
+        		edit.setCreatedBy(member);
+        	}
+        	
+        	// Return response
+        	return edits;
 		}
 		catch (Exception e) {
 			Response response = ResponseUtils.serverError(e);
@@ -601,7 +762,7 @@ public class TopicsApiServiceImpl extends CommunityApiServiceImpl {
         		// Get the created by
         		MemberDTO memberDTO = memberDAO.find(post.getCreatedBy().getId());
         		// Convert to bean
-        		Member member = new MemberConverter().convert(memberDTO);
+        		Member member = new MemberConverter().convertPublic(memberDTO);
         		// Assign it
         		post.setCreatedBy(member);
         		// Return result
