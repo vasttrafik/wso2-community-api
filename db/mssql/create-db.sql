@@ -136,7 +136,7 @@ CREATE TABLE COM_MEMBER (
 CREATE TABLE COM_MEMBER_RANKING (
   COM_ID               INT NOT NULL IDENTITY(1,1) PRIMARY KEY,
   COM_MEMBER_ID        INT NOT NULL,
-  COM_RANKING_ID       INT NOT NULL,
+  COM_RANKING_ID       INT NOT NULL DEFAULT 1,
   COM_CURRENT_SCORE    INT DEFAULT 1
 );
 
@@ -319,7 +319,7 @@ CREATE TABLE COM_VOTE (
   COM_POINTS           SMALLINT NOT NULL
 );
 
-CREATE UNIQUE INDEX IX_VOTE_POST ON COM_VOTE (COM_POST_ID);
+CREATE INDEX IX_VOTE_POST ON COM_VOTE (COM_POST_ID);
 
 --
 -- SELECT statement for view COM_POST_VIEW
@@ -1177,6 +1177,11 @@ AS
 -- Insert base data into table com_category
 --
 INSERT INTO COM_CATEGORY(COM_NAME, COM_IS_PUBLIC) VALUES('Internal', 0);
+
+--
+-- Insert base data into table com_ranking
+--
+INSERT INTO COM_RANKING(COM_ID, COM_TITLE, COM_TYPE,COM_MIN_POINTS) VALUES(1, 'member', 'reputation', 0);
 
 --
 -- Insert base data into table com_forum
