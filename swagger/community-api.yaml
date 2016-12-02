@@ -899,7 +899,7 @@ paths:
             - votes
         - name: query
           in: query
-          description: 'Query string that will be matched against the following attributes: createDate, createdBy, text, categoryId and forumId'
+          description: 'Query string that will be matched against the following attributes: createDate, createdBy, text, categoryId, forumId and type'
           required: false
           type: string
         - name: offset
@@ -1302,6 +1302,11 @@ paths:
           $ref: '#/parameters/offset'
         - name: limit
           $ref: '#/parameters/limit'
+        - name: setInfo
+          in: query
+          description: 'Indiciates if topics should include first and last post and extended member info (has a performance hit)'
+          required: false
+          type: boolean    
       responses:
         '200':
           description: Successful response
@@ -1350,6 +1355,11 @@ paths:
       description: 'Retrieves a forum topic, inluding all posts'
       parameters:
         - $ref: '#/parameters/id'
+        - name: includePosts
+          in: query
+          description: 'Weather to include posts or not in the result. Defaults to true'
+          required: false
+          type: boolean
       responses:
         '200':
           description: Successful response
