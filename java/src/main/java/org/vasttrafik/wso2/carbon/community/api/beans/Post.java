@@ -38,6 +38,7 @@ public final class Post  {
 	private Short numberOfTimesEdited = null;
 	private List<PostEdit> edits = new ArrayList<PostEdit>();
 	private List<Report> reports = new ArrayList<Report>();
+	private List<Vote> votes = new ArrayList<Vote>();
 	private Boolean isModerated = null;
 	private Boolean isDeleted = null;
 	private Boolean isReported = null;
@@ -173,6 +174,14 @@ public final class Post  {
 
 	public void setReports(List<Report> reports) {
 		this.reports = reports;
+	}
+	
+	public List<Vote> getVotes() {
+		return votes;
+	}
+
+	public void setVotes(List<Vote> votes) {
+		this.votes = votes;
 	}
 
 	/**

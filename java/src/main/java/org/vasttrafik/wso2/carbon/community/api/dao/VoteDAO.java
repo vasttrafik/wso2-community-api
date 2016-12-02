@@ -31,6 +31,14 @@ public interface VoteDAO extends TransactionalDAO {
 
 	//----------------------------------------------------------------------
 	/**
+	 * Finds votes filtered by postId
+	 * @param postId The post id
+	 * @return A list of votes matching the criterias
+	 */
+	public List<VoteDTO> findByPost(Long postId) throws SQLException;
+	
+	//----------------------------------------------------------------------
+	/**
 	 * Loads the given bean, it is supposed to contains the primary key value(s) in its attribute(s)<br>
 	 * If found, the given instance is populated with the values retrieved from the database<br>
 	 * If not found, the given instance remains unchanged

@@ -2,7 +2,7 @@ package org.vasttrafik.wso2.carbon.community.api.beans;
 
 public final class Vote  {
   
-	public enum TypeEnum {question,  answer};
+	public enum TypeEnum {question, comment,  answer};
   
 	private Long id = null;
 	private Long postId = null;

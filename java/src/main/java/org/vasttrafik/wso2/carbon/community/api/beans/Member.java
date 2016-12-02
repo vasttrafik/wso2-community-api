@@ -24,6 +24,7 @@ public final class Member  {
 	private String signature = null;
 	private Boolean useGravatar = null;
 	private String gravatarEmail = null;
+	private String gravatarEmailHash = null;
 	private Boolean acceptAllMessages = null;
 	private Boolean notifyEmail = null;
 	private Boolean notifyMessage = null;
@@ -115,6 +116,18 @@ public final class Member  {
 	public void setGravatarEmail(String gravatarEmail) {
 		this.gravatarEmail = gravatarEmail;
 	}
+
+	/**
+	 * The Gravatar email hash of the user
+	 **/
+	public String getGravatarEmailHash() {
+		return gravatarEmailHash;
+	}
+  
+	public void setGravatarEmailHash(String gravatarEmailHash) {
+		this.gravatarEmailHash = gravatarEmailHash;
+	}
+	
 
 	/**
 	 * Whether private messages is enabled

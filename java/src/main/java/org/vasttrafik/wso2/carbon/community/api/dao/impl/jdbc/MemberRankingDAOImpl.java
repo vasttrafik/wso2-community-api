@@ -27,22 +27,22 @@ public final class MemberRankingDAOImpl extends GenericDAO<MemberRankingDTO> imp
 		"select a.com_id, a.com_member_id, a.com_ranking_id, b.com_title, b.com_type, b.com_min_points, b.com_image_url, a.com_current_score from com_member_ranking a, com_ranking b where a.com_member_id = ? and a.com_ranking_id = b.com_id";
 
 	private final static String SQL_SELECT = 
-		"select com_id, com_member_id, com_ranking_id, com_current_score from com_user_ranking where com_id = ?";
+		"select com_id, com_member_id, com_ranking_id, com_current_score from com_member_ranking where com_id = ?";
 
 	private final static String SQL_INSERT = 
-		"insert into com_user_ranking (com_member_id, com_ranking_id, com_current_score) values (?, ?, ?)";
+		"insert into com_member_ranking (com_member_id, com_ranking_id, com_current_score) values (?, ?, ?)";
 
 	private final static String SQL_UPDATE = 
-		"update com_user_ranking set com_member_id = ?, com_ranking_id = ?, com_current_score = ? where com_id = ?";
+		"update com_member_ranking set com_member_id = ?, com_ranking_id = ?, com_current_score = ? where com_id = ?";
 
 	private final static String SQL_DELETE = 
-		"delete from com_user_ranking where com_id = ?";
+		"delete from com_member_ranking where com_id = ?";
 
 	private final static String SQL_COUNT_ALL = 
-		"select count(*) from com_user_ranking";
+		"select count(*) from com_member_ranking";
 
 	private final static String SQL_COUNT = 
-		"select count(*) from com_user_ranking where com_id = ?";
+		"select count(*) from com_member_ranking where com_id = ?";
 
     //----------------------------------------------------------------------
 	/**

@@ -33,4 +33,14 @@ public final class VoteConverter {
 		vote.setType(voteType);
 		return vote;
 	}
+	
+	public VoteDTO convert(Vote vote) {
+		VoteDTO voteDTO = new VoteDTO();
+		voteDTO.setMemberId(vote.getMemberId());
+		voteDTO.setPoints(vote.getPoints());
+		voteDTO.setPostId(vote.getPostId());
+		voteDTO.setType(vote.getType().name());
+		
+		return voteDTO;
+	}
 }
