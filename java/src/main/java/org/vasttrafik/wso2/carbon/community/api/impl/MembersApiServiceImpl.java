@@ -1,6 +1,10 @@
 package org.vasttrafik.wso2.carbon.community.api.impl;
 
+import java.io.File;
+import java.io.IOException;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import javax.ws.rs.BadRequestException;
 import javax.ws.rs.NotAuthorizedException;
@@ -8,6 +12,7 @@ import javax.ws.rs.NotFoundException;
 import javax.ws.rs.ServerErrorException;
 import javax.ws.rs.core.Response;
 
+import org.apache.commons.io.FileUtils;
 import org.vasttrafik.wso2.carbon.common.api.beans.AuthenticatedUser;
 import org.vasttrafik.wso2.carbon.common.api.beans.Error;
 import org.vasttrafik.wso2.carbon.common.api.utils.ResponseUtils;
@@ -57,7 +62,7 @@ public final class MembersApiServiceImpl extends CommunityApiServiceImpl {
         	// Perform the search
         	List<MemberDTO> memberDTOs = memberDAO.findByEmailOrSignature(member, offset, limit);
         	// Convert the result
-        	List<Member> members = memberConverter.convert(memberDTOs);
+        	List<Member> members = memberConverter.convertPublic(memberDTOs);
         	// Return the result
         	return Response.status(200).entity(members).build();
         }
@@ -79,7 +84,7 @@ public final class MembersApiServiceImpl extends CommunityApiServiceImpl {
     public Response createMember(String authorization, Member member) 
     	throws ServerErrorException 
     {
-    	// TO-DO: Create the folders of the member, and the member rankings
+    	// TO-DO: Create the folders of the member
     	// Do it in SQL?
     	try {
     		// Authorize. May throw NotAuthorizedException
@@ -91,12 +96,52 @@ public final class MembersApiServiceImpl extends CommunityApiServiceImpl {
     		if (!authenticatedUser.equalsIgnoreCase(member.getUserName()))
     				throw new NotAuthorizedException("Usernames do not match");
     		
+    		// Check for valid signature
+    		if(!isAdmin() && !validSignature(member.getSignature()))
+    			return responseUtils.badRequest(1207L, null);
+    		
 			// Convert the category
         	MemberDTO memberDTO = memberConverter.convert(member);
 			// Get the DAO implementation
         	MemberDAO memberDAO = DAOProvider.getDAO(MemberDAO.class);
         	// Perform the insert
-        	memberDAO.insert(memberDTO);
+        	memberDAO.setAutoCommit(false);
+        	
+        	try {
+    			// Write the changes to database
+        		memberDAO.insert(memberDTO);
+    		}
+    		catch (Exception e) {
+    			memberDAO.rollbackTransaction(true);
+				throw e;
+			}
+
+        	// Add a Member ranking as well with the created member id
+        	MemberRankingDTO memberRankingDTO = new MemberRankingDTO();
+        	memberRankingDTO.setMemberId(user.getUserId());
+        	memberRankingDTO.setRankingId(1); // Default ranking id
+        	memberRankingDTO.setCurrentScore(1);
+        	
+        	MemberRankingDAO memberRankingDAO = DAOProvider.getDAO(MemberRankingDAO.class);
+        	memberRankingDAO.setAutoCommit(false);
+        	// Assign the same connection to this DAO
+        	memberRankingDAO.setConnection(memberDAO.getConnection());
+        	
+        	try {
+        		// Perform insert of member ranking
+        		memberRankingDAO.insert(memberRankingDTO);
+        	}
+        	catch (Exception e) {
+        		memberDAO.rollbackTransaction(true);
+				throw e;
+        	}
+        	
+        	memberDAO.commitTransaction(true);
+        	
+        	if(member.getUseGravatar() != null && member.getUseGravatar() && member.getGravatarEmail() != null && member.getGravatarEmail().length() > 0) {
+        		member.setGravatarEmailHash(memberConverter.getMD5Hash(member.getGravatarEmail()));
+        	}
+
         	// Return result
         	return Response.status(201).entity(member).build();
 		}
@@ -123,7 +168,7 @@ public final class MembersApiServiceImpl extends CommunityApiServiceImpl {
     		// Authorize. May throw NotAuthorizedException
     		authorize(authorization);
     		
-    		// Topic can only be updated by an admin or the creator of the topic
+    		// Member info can only be obtained by an admin or the member
     		if (!isAdmin() && !isOwnerOrAdmin(memberId))
     			return responseUtils.notAuthorizedError(1104L, null);
     		
@@ -153,6 +198,11 @@ public final class MembersApiServiceImpl extends CommunityApiServiceImpl {
         	return Response.status(200).entity(member).build();
         	
 		}
+    	catch (NotAuthorizedException bre) {
+			return Response.status(Response.Status.UNAUTHORIZED)
+					.entity(bre.getCause())
+					.build();
+		}
 		catch (Exception e) {
 			Response response = ResponseUtils.serverError(e);
 			throw new ServerErrorException(response);
@@ -181,6 +231,9 @@ public final class MembersApiServiceImpl extends CommunityApiServiceImpl {
     		if (!isAdmin() && !isOwnerOrAdmin(memberId))
     			return responseUtils.notAuthorizedError(1104L, null);
     		
+    		if(!isAdmin() && !validSignature(member.getSignature()))
+    			return responseUtils.badRequest(1207L, null);
+    		
     		// Convert the category
         	MemberDTO memberDTO = memberConverter.convert(member);
 			// Get the DAO implementation
@@ -191,9 +244,25 @@ public final class MembersApiServiceImpl extends CommunityApiServiceImpl {
         	// Check result
         	if (count == 0) // = Not found
         		return responseUtils.notFound(1002L, null);
-        	else
+        	else {
+        		
+        		// Add Gravatar MD5 Hash if needed
+        		if(member.getUseGravatar() != null && member.getUseGravatar() && member.getGravatarEmail() != null && member.getGravatarEmail().length() > 0)
+        			member.setGravatarEmailHash(memberConverter.getMD5Hash(member.getGravatarEmail()));
+        		
         		// Return result
         		return Response.status(200).entity(member).build();
+        		
+        	}
+        		
+        		
+        		
+
+		}
+    	catch (NotAuthorizedException bre) {
+			return Response.status(Response.Status.UNAUTHORIZED)
+					.entity(bre.getCause())
+					.build();
 		}
 		catch (Exception e) {
 			Response response = ResponseUtils.serverError(e);
@@ -288,5 +357,21 @@ public final class MembersApiServiceImpl extends CommunityApiServiceImpl {
 			Response response = ResponseUtils.serverError(e);
 			throw new ServerErrorException(response);
 		}
+    }
+    
+    
+    private boolean validSignature(String signature) throws IOException {
+    	
+    	ClassLoader classLoader = getClass().getClassLoader();
+    	File file = new File(classLoader.getResource("signature.blacklist").getFile());
+    	Set<String> lines = new HashSet<String>(FileUtils.readLines(file));
+    	
+    	for(String line : lines) {
+    		if(signature.toLowerCase().contains(line))
+    			return false;
+    	}
+    	
+    	return true;
+
     }
 }
