@@ -25,7 +25,11 @@ public final class CommunityErrorListResourceBundle_sv_SE extends AbstractErrorL
 		{"1202","Topic borttagen","Angiven topic är borttagen och kan inte längre uppdateras."},
 		{"1203","Post saknas","Kan inte skapa topic utan tillhörande post."},
 		{"1204","Skapad av saknas","Kan inte uppdatera topic utan att veta vem som skapade den."},
-		{"1205","Otillåtet format","Endast administratörer får skapa inlägg i formatet html."}
+		{"1205","Otillåtet format","Endast administratörer får skapa inlägg i formatet html."},
+		{"1206","Röst får ej läggas","Det gåt endast att rösta en gång, och det går inte att rösta på sitt eget inlägg."},
+		{"1207","Ej godkänd signatur","Vald signatur får ej användas."},
+		{"1208","Ej möjligt att ta bort en topic som innehåller poster."},
+		{"1209","Inlägg är redan markerat som besvarat"}
 	};
 
 	@Override
