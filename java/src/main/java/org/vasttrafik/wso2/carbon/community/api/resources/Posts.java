@@ -11,6 +11,7 @@ import javax.ws.rs.*;
 import org.vasttrafik.wso2.carbon.community.api.beans.Post;
 import org.vasttrafik.wso2.carbon.community.api.beans.Vote;
 import org.vasttrafik.wso2.carbon.community.api.impl.PostsApiServiceImpl;
+import org.vasttrafik.wso2.carbon.community.api.impl.utils.CacheControl;
 
 /**
  * 
@@ -25,6 +26,7 @@ public final class Posts {
 	private final PostsApiServiceImpl delegate = new PostsApiServiceImpl();
     
 	@GET
+    @CacheControl("no-cache")
     public Response getPosts(
     		@QueryParam("label") final String label,
     		@QueryParam("query") final String query,
@@ -48,6 +50,7 @@ public final class Posts {
     
     @GET
     @Path("/{id}")
+    @CacheControl("no-cache")
     public Response getPost(@PathParam("id") final Long id) 
     	throws ClientErrorException 
     {
@@ -80,6 +83,7 @@ public final class Posts {
     
     @GET
     @Path("/{id}/edits")
+    @CacheControl("no-cache")
     public Response getEdits(@PathParam("id") final Long id) 
     	throws ClientErrorException 
     {

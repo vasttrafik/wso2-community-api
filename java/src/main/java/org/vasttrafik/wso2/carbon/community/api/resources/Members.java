@@ -13,12 +13,14 @@ import javax.ws.rs.*;
 import org.vasttrafik.wso2.carbon.community.api.beans.Member;
 import org.vasttrafik.wso2.carbon.community.api.beans.Watch;
 import org.vasttrafik.wso2.carbon.community.api.impl.MembersApiServiceImpl;
+import org.vasttrafik.wso2.carbon.community.api.impl.utils.CacheControl;
 
 /**
  * 
  * @author Lars Andersson
  *
  */
+@SuppressWarnings("unused")
 @Path("/members")
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
@@ -27,6 +29,7 @@ public final class Members  {
 	private final MembersApiServiceImpl delegate = new MembersApiServiceImpl();
 	
 	@GET
+    @CacheControl("no-cache")
     public Response getMembers(
     		@QueryParam("member") @NotNull(message= "{member.search.notnull}") final String member,
     		@QueryParam("offset") @Min(1) @DefaultValue("1") final Integer offset,
@@ -49,6 +52,7 @@ public final class Members  {
 
 	@GET
     @Path("/{id}")
+    @CacheControl("no-cache")
     public Response getMember(
     		@NotNull(message= "{assertion.notnull}") @HeaderParam("X-JWT-Assertion") final String authorization,
     		@PathParam("id") final Integer id
@@ -72,6 +76,7 @@ public final class Members  {
 	
 	@GET
     @Path("/{id}/folders")
+    @CacheControl("no-cache")
     public Response getFolders(
     		@NotNull(message= "{assertion.notnull}") @HeaderParam("X-JWT-Assertion") final String authorization,
     		@PathParam("id") final Integer id
@@ -81,6 +86,7 @@ public final class Members  {
         return delegate.getFolders(authorization, id);
     }
     
+	/*
     @GET
     @Path("/{id}/watches")
     public Response getWatches(
@@ -104,5 +110,6 @@ public final class Members  {
     {
         return delegate.deleteWatches(authorization, id, watches);
     }
+    */
 }
 

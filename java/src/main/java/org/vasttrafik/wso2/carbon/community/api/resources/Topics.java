@@ -12,6 +12,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.vasttrafik.wso2.carbon.community.api.beans.Topic;
 import org.vasttrafik.wso2.carbon.community.api.impl.TopicsApiServiceImpl;
+import org.vasttrafik.wso2.carbon.community.api.impl.utils.CacheControl;
 
 /**
  * 
@@ -28,15 +29,17 @@ public final class Topics {
 	private static final Log log = LogFactory.getLog(Topics.class);
 
     @GET
+    @CacheControl("no-cache")
     public Response getTopics(
     		@QueryParam("label") final String label,
     		@QueryParam("query") final String query,
     		@QueryParam("offset") @Min(1) @DefaultValue("1") final Integer offset,
-    		@QueryParam("limit") @Min(1) @Max(50) @DefaultValue("10") final Integer limit
+    		@QueryParam("limit") @Min(1) @Max(100) @DefaultValue("10") final Integer limit,
+    		@QueryParam("setInfo") @DefaultValue("false") final boolean setInfo
     ) 
     	throws ClientErrorException 
     {
-        return delegate.getTopics(label, query, offset, limit);
+        return delegate.getTopics(label, query, offset, limit, setInfo);
     }
     
     @POST
@@ -52,10 +55,11 @@ public final class Topics {
     
     @GET
     @Path("/{id}")
-    public Response getTopic(@PathParam("id") final Long id) 
+    @CacheControl("no-cache")
+    public Response getTopic(@PathParam("id") final Long id, @QueryParam("includePosts") @DefaultValue("true") final boolean includePosts) 
     	throws ClientErrorException 
     {
-        return delegate.getTopic(id);
+        return delegate.getTopic(id, includePosts);
     }
     
     @PUT
@@ -84,6 +88,7 @@ public final class Topics {
     
     @GET
     @Path("/{id}/posts")
+    @CacheControl("no-cache")
     public Response getTopicPosts(
     		@HeaderParam("If-Modified-Since") final String ifModifiedSince,
     		@PathParam("id") final Long topicId,
@@ -97,6 +102,7 @@ public final class Topics {
     
     @GET
     @Path("/{id}/votes")
+    @CacheControl("no-cache")
     public Response getTopicVotes(
     		@NotNull(message= "{assertion.notnull}") @HeaderParam("X-JWT-Assertion") final String authorization,
     		@PathParam("id") final Long topicId,
@@ -106,6 +112,7 @@ public final class Topics {
         return delegate.getVotes(authorization, topicId, memberId);
     }
     
+    /*
     @POST
     @Path("/{id}/watches")
     public Response postTopicWatch(
@@ -126,5 +133,6 @@ public final class Topics {
     {
         return delegate.deleteWatch(authorization, watchId);
     }
+    */
 }
 

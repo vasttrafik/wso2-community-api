@@ -11,12 +11,14 @@ import javax.ws.rs.*;
 import org.vasttrafik.wso2.carbon.community.api.beans.Report;
 import org.vasttrafik.wso2.carbon.community.api.beans.ReportMeasure;
 import org.vasttrafik.wso2.carbon.community.api.impl.ReportsApiServiceImpl;
+import org.vasttrafik.wso2.carbon.community.api.impl.utils.CacheControl;
 
 /**
  * 
  * @author Lars Andersson
  *
  */
+@SuppressWarnings("unused")
 @Path("/reports")
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
@@ -24,7 +26,9 @@ public final class Reports {
 	
 	private ReportsApiServiceImpl delegate = new ReportsApiServiceImpl();
 	
+	/*
 	@GET 
+	@CacheControl("no-cache")
     public Response getReports(
     		@NotNull(message= "{assertion.notnull}") @HeaderParam("X-JWT-Assertion") final String authorization,
     		@HeaderParam("If-Modified-Since") final String ifModifiedSince,
@@ -49,6 +53,7 @@ public final class Reports {
     
     @GET
     @Path("/{id}")
+    @CacheControl("no-cache")
     public Response getReport(
     		@NotNull(message= "{assertion.notnull}") @HeaderParam("X-JWT-Assertion") final String authorization,
     		@PathParam("id") Long id
@@ -81,4 +86,5 @@ public final class Reports {
     {
         return delegate.createMeasure(authorization, id, measure);
     }
+    */
 }

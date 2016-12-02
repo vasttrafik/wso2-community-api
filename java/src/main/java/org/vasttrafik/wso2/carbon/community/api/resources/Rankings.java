@@ -7,12 +7,14 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.*;
 
 import org.vasttrafik.wso2.carbon.community.api.impl.RankingsApiServiceImpl;
+import org.vasttrafik.wso2.carbon.community.api.impl.utils.CacheControl;
 
 /**
  * 
  * @author Lars Andersson
  *
  */
+@SuppressWarnings("unused")
 @Path("/rankings")
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
@@ -20,7 +22,9 @@ public final class Rankings {
 	
 	private RankingsApiServiceImpl delegate = new RankingsApiServiceImpl();
 
+	/*
     @GET
+    @CacheControl("no-cache")
     public Response getRankings(
     		@QueryParam("type") @DefaultValue("reputation") final String type,
     		@QueryParam("sorting") @DefaultValue("desc") final String sorting,
@@ -31,5 +35,6 @@ public final class Rankings {
     {
         return delegate.getRankings(type, sorting, offset, limit);
     }
+    */
 }
 

@@ -12,12 +12,14 @@ import javax.ws.rs.*;
 
 import org.vasttrafik.wso2.carbon.community.api.beans.Folder;
 import org.vasttrafik.wso2.carbon.community.api.impl.FoldersApiServiceImpl;
+import org.vasttrafik.wso2.carbon.community.api.impl.utils.CacheControl;
 
 /**
  * 
  * @author Lars Andersson
  *
  */
+@SuppressWarnings("unused")
 @Path("/folders")
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
@@ -25,6 +27,7 @@ public final class Folders {
 	
 	private FoldersApiServiceImpl delegate = new FoldersApiServiceImpl();
    
+	/*
     @POST
     public Response postFolder(
     		@NotNull(message= "{assertion.notnull}") @HeaderParam("X-JWT-Assertion") final String authorization,
@@ -37,6 +40,7 @@ public final class Folders {
     
     @GET
     @Path("/{id}")
+    @CacheControl("no-cache")
     public Response getFolder(
     		@NotNull(message= "{assertion.notnull}") @HeaderParam("X-JWT-Assertion") final String authorization,
     		@PathParam("id") final Long id
@@ -70,6 +74,7 @@ public final class Folders {
     
     @GET
     @Path("/{id}/messages")
+    @CacheControl("no-cache")
     public Response getFolderMessages(
     		@NotNull(message= "{assertion.notnull}") @HeaderParam("X-JWT-Assertion") final String authorization,
     		@PathParam("id") final Long id, 
@@ -105,5 +110,6 @@ public final class Folders {
     {
         return delegate.deleteFolderMessages(authorization, id, messages);
     }
+    */
 }
 

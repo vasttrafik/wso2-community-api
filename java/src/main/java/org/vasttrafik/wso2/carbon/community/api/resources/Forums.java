@@ -10,6 +10,7 @@ import javax.ws.rs.*;
 
 import org.vasttrafik.wso2.carbon.community.api.beans.Forum;
 import org.vasttrafik.wso2.carbon.community.api.impl.ForumsApiServiceImpl;
+import org.vasttrafik.wso2.carbon.community.api.impl.utils.CacheControl;
 
 /**
  * 
@@ -24,6 +25,7 @@ public final class Forums {
 	private final ForumsApiServiceImpl delegate = new ForumsApiServiceImpl();
    
     @GET
+    @CacheControl("no-cache")
     public Response getForums(
     		@QueryParam("name") final String name,
     		@QueryParam("label") final String label,
@@ -47,6 +49,7 @@ public final class Forums {
     
     @GET
     @Path("/{id}")
+    @CacheControl("no-cache")
     public Response getForum(@PathParam("id") final Integer id) 
     	throws ClientErrorException
     {
@@ -90,6 +93,7 @@ public final class Forums {
         return delegate.getTopics(ifModifiedSince, forumId, offset, limit);
     }
     
+    /*
     @POST
     @Path("/{id}/watches")
     public Response postWatch(
@@ -112,5 +116,6 @@ public final class Forums {
     {
         return delegate.deleteWatch(authorization, watchId);
     }
+    */
 }
 

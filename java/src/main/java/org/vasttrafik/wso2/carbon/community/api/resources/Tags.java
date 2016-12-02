@@ -13,6 +13,7 @@ import org.vasttrafik.wso2.carbon.community.api.impl.TagsApiServiceImpl;
  * @author Lars Andersson
  *
  */
+@SuppressWarnings("unused")
 @Path("/tags")
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
@@ -20,6 +21,7 @@ public final class Tags {
 	
 	private final TagsApiServiceImpl delegate = new TagsApiServiceImpl();
 	
+	/*
 	@GET
     public Response getTags(
     		@QueryParam("offset") @Min(1) @DefaultValue("1") final Integer offset,
@@ -29,4 +31,5 @@ public final class Tags {
     {
         return delegate.getTags(offset, limit);
     }
+    */
 }
