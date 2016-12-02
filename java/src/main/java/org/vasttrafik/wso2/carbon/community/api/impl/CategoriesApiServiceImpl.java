@@ -14,13 +14,25 @@ import org.apache.commons.logging.LogFactory;
 import org.vasttrafik.wso2.carbon.common.api.utils.ResponseUtils;
 import org.vasttrafik.wso2.carbon.community.api.beans.Category;
 import org.vasttrafik.wso2.carbon.community.api.beans.Forum;
+import org.vasttrafik.wso2.carbon.community.api.beans.Member;
+import org.vasttrafik.wso2.carbon.community.api.beans.MemberRanking;
+import org.vasttrafik.wso2.carbon.community.api.beans.Post;
 import org.vasttrafik.wso2.carbon.community.api.beans.converters.CategoryConverter;
 import org.vasttrafik.wso2.carbon.community.api.beans.converters.ForumConverter;
+import org.vasttrafik.wso2.carbon.community.api.beans.converters.MemberConverter;
+import org.vasttrafik.wso2.carbon.community.api.beans.converters.MemberRankingConverter;
+import org.vasttrafik.wso2.carbon.community.api.beans.converters.PostConverter;
 import org.vasttrafik.wso2.carbon.community.api.dao.CategoryDAO;
 import org.vasttrafik.wso2.carbon.community.api.dao.ForumDAO;
+import org.vasttrafik.wso2.carbon.community.api.dao.MemberDAO;
+import org.vasttrafik.wso2.carbon.community.api.dao.MemberRankingDAO;
+import org.vasttrafik.wso2.carbon.community.api.dao.PostDAO;
 import org.vasttrafik.wso2.carbon.community.api.dao.commons.DAOProvider;
 import org.vasttrafik.wso2.carbon.community.api.model.CategoryDTO;
 import org.vasttrafik.wso2.carbon.community.api.model.ForumDTO;
+import org.vasttrafik.wso2.carbon.community.api.model.MemberDTO;
+import org.vasttrafik.wso2.carbon.community.api.model.MemberRankingDTO;
+import org.vasttrafik.wso2.carbon.community.api.model.PostDTO;
 
 /**
  * 
@@ -68,6 +80,9 @@ public final class CategoriesApiServiceImpl extends CommunityApiServiceImpl {
         	if (!categories.isEmpty() && includeForums) {
         		// Get a forums DAO
         		ForumDAO forumDAO = DAOProvider.getDAO(ForumDAO.class);
+        		
+	        	MemberDAO memberDAO = DAOProvider.getDAO(MemberDAO.class);
+	        	PostDAO postDAO = DAOProvider.getDAO(PostDAO.class);
         	
         		for (Iterator<Category> it = categories.iterator(); it.hasNext();) {
         			// Get the category
@@ -76,6 +91,38 @@ public final class CategoriesApiServiceImpl extends CommunityApiServiceImpl {
         			List<ForumDTO> forumsDTO = forumDAO.findByCategory(category.getId(), null, null, null);
         			// Convert to beans
         			List<Forum> forums = forumConverter.convert(forumsDTO);
+        			
+        			for(Iterator<Forum> itf = forums.iterator(); itf.hasNext();) {
+        				
+        				Forum forum = itf.next();
+        				
+        				if(forum.getLastPost() != null) {
+            				// Get the last post from id
+        		    		PostDTO postDTO = postDAO.find(forum.getLastPost().getId());
+        		    		// Convert
+        		    		Post post = new PostConverter().convert(postDTO);
+        		    		// Get the member that created the post
+        		    		MemberDTO memberDTO = memberDAO.find(post.getCreatedBy().getId());
+        		    		// Convert
+        		    		Member member = new MemberConverter().convert(memberDTO);
+        		    		
+        		    		// Get the DAO implementation
+        	                MemberRankingDAO rankingDAO = DAOProvider.getDAO(MemberRankingDAO.class);
+        	            	// Get rankings List<MemberRanking>
+        	            	List<MemberRankingDTO> rankingDTOs = rankingDAO.findByMember(member.getId());
+        	            	// Convert to bean
+        	            	MemberRankingConverter converter = new MemberRankingConverter();
+        	            	List<MemberRanking> rankings = converter.convert(rankingDTOs);
+        	            	// Assign the value
+        	            	member.setRankings(rankings);
+        		    		
+        		    		// Assign the member to the post
+        		    		post.setCreatedBy(member);
+        		    		// Assign the post to the forum
+        		    		forum.setLastPost(post);
+        				}
+        			}
+        			
         			// Assign
         		    category.setForums(forums);
         		}
@@ -117,6 +164,40 @@ public final class CategoriesApiServiceImpl extends CommunityApiServiceImpl {
     			List<ForumDTO> forumsDTO = forumDAO.findByCategory(category.getId(), null, null, null);
     			// Convert to beans
     			List<Forum> forums = forumConverter.convert(forumsDTO);
+    			
+            	MemberDAO memberDAO = DAOProvider.getDAO(MemberDAO.class);
+            	PostDAO postDAO = DAOProvider.getDAO(PostDAO.class);
+            	
+    			for(Iterator<Forum> itf = forums.iterator(); itf.hasNext();) {
+    				
+    				Forum forum = itf.next();
+    				// Get the last post from id
+    				if(forum.getLastPost() != null) {
+    					PostDTO postDTO = postDAO.find(forum.getLastPost().getId());
+        	    		// Convert
+        	    		Post post = new PostConverter().convert(postDTO);
+        	    		// Get the member that created the post
+        	    		MemberDTO memberDTO = memberDAO.find(post.getCreatedBy().getId());
+        	    		// Convert
+        	    		Member member = new MemberConverter().convert(memberDTO);
+        	    		
+        	    		// Get the DAO implementation
+                        MemberRankingDAO rankingDAO = DAOProvider.getDAO(MemberRankingDAO.class);
+                    	// Get rankings List<MemberRanking>
+                    	List<MemberRankingDTO> rankingDTOs = rankingDAO.findByMember(member.getId());
+                    	// Convert to bean
+                    	MemberRankingConverter converter = new MemberRankingConverter();
+                    	List<MemberRanking> rankings = converter.convert(rankingDTOs);
+                    	// Assign the value
+                    	member.setRankings(rankings);
+        	    		
+        	    		// Assign the member to the post
+        	    		post.setCreatedBy(member);
+        	    		// Assign the post to the forum
+        	    		forum.setLastPost(post);
+    				}
+    			}
+    			
     			// Assign
     		    category.setForums(forums);
 	        	// Return result
