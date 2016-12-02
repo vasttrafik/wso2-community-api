@@ -11,6 +11,7 @@ import javax.ws.rs.*;
 
 import org.vasttrafik.wso2.carbon.community.api.beans.Category;
 import org.vasttrafik.wso2.carbon.community.api.impl.CategoriesApiServiceImpl;
+import org.vasttrafik.wso2.carbon.community.api.impl.utils.CacheControl;
 
 /**
  * 
@@ -25,6 +26,7 @@ public final class Categories  {
 	private final CategoriesApiServiceImpl delegate = new CategoriesApiServiceImpl();
   
     @GET
+    @CacheControl("no-cache")
     public Response getCategories(
     		@QueryParam("includePrivate") @DefaultValue("false") final Boolean includePrivate,
     		@QueryParam("includeForums")  @DefaultValue("false") final Boolean includeForums
@@ -46,6 +48,7 @@ public final class Categories  {
     
     @GET
     @Path("/{id}")
+    @CacheControl("no-cache")
     public Response getCategory(
     		@PathParam("id") final Integer id
     ) 
@@ -79,6 +82,7 @@ public final class Categories  {
     
     @GET
     @Path("/{id}/forums")
+    @CacheControl("no-cache")
     public Response getForums(
     		@HeaderParam("If-Modified-Since") final String ifModifiedSince, 
     		@PathParam("id") final Integer id,

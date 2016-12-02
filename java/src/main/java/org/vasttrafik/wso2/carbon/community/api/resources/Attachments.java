@@ -14,12 +14,14 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.*;
 
 import org.vasttrafik.wso2.carbon.community.api.impl.AttachmentsApiServiceImpl;
+import org.vasttrafik.wso2.carbon.community.api.impl.utils.CacheControl;
 
 /**
  * 
  * @author Lars Andersson
  *
  */
+@SuppressWarnings("unused")
 @Path("/attachments")
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
@@ -42,10 +44,10 @@ public final class Attachments  {
         }
     	
         return null;
-    }*/
     
     @GET
     @Path("/{id}")
+    @CacheControl("no-cache")
     public Response getAttachment(
     		@NotNull(message= "{assertion.notnull}") @HeaderParam("X-JWT-Assertion") final String authorization,
     		@PathParam("id") final Long id
@@ -54,5 +56,6 @@ public final class Attachments  {
     {
         return delegate.getAttachment(authorization, id);
     }
+        }*/
 }
 
