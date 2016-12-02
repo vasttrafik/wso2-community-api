@@ -1,6 +1,7 @@
 package org.vasttrafik.wso2.carbon.community.api.impl;
 
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
@@ -11,6 +12,7 @@ import javax.ws.rs.NotFoundException;
 import javax.ws.rs.ServerErrorException;
 import javax.ws.rs.core.Response;
 
+import org.vasttrafik.wso2.carbon.common.api.beans.AuthenticatedUser;
 import org.vasttrafik.wso2.carbon.common.api.beans.Error;
 import org.vasttrafik.wso2.carbon.common.api.utils.ResponseUtils;
 import org.vasttrafik.wso2.carbon.community.api.beans.Member;
@@ -20,13 +22,21 @@ import org.vasttrafik.wso2.carbon.community.api.beans.Vote;
 import org.vasttrafik.wso2.carbon.community.api.beans.converters.MemberConverter;
 import org.vasttrafik.wso2.carbon.community.api.beans.converters.PostConverter;
 import org.vasttrafik.wso2.carbon.community.api.beans.converters.PostEditConverter;
+import org.vasttrafik.wso2.carbon.community.api.beans.converters.VoteConverter;
+import org.vasttrafik.wso2.carbon.community.api.dao.CategoryDAO;
+import org.vasttrafik.wso2.carbon.community.api.dao.ForumDAO;
 import org.vasttrafik.wso2.carbon.community.api.dao.MemberDAO;
 import org.vasttrafik.wso2.carbon.community.api.dao.PostDAO;
 import org.vasttrafik.wso2.carbon.community.api.dao.PostEditDAO;
+import org.vasttrafik.wso2.carbon.community.api.dao.TopicDAO;
+import org.vasttrafik.wso2.carbon.community.api.dao.VoteDAO;
 import org.vasttrafik.wso2.carbon.community.api.dao.commons.DAOProvider;
+import org.vasttrafik.wso2.carbon.community.api.model.CategoryDTO;
+import org.vasttrafik.wso2.carbon.community.api.model.ForumDTO;
 import org.vasttrafik.wso2.carbon.community.api.model.MemberDTO;
 import org.vasttrafik.wso2.carbon.community.api.model.PostDTO;
 import org.vasttrafik.wso2.carbon.community.api.model.PostEditDTO;
+import org.vasttrafik.wso2.carbon.community.api.model.VoteDTO;
 
 /**
  * 
@@ -44,6 +54,11 @@ public final class PostsApiServiceImpl extends CommunityApiServiceImpl {
 	 * Converting between member bean and DTO
 	 */
 	private MemberConverter memberConverter = new MemberConverter();
+	
+	/**
+	 * Converting between vote bean and DTO
+	 */
+	private VoteConverter voteConverter = new VoteConverter();
 	
 	private static final String[] actions = {"answered", "edited"};
 	private static final String[] labels = {"popular", "recent", "votes", "unanswered"};
@@ -91,6 +106,24 @@ public final class PostsApiServiceImpl extends CommunityApiServiceImpl {
         	
         	// Convert the result
         	List<Post> posts = postConverter.convert(postDTOs);
+        	
+        	for(Post post : posts) {
+        		
+        		// Set edit info
+        		if(post.getNumberOfTimesEdited() > 0) {
+        			post.setEdits(getEdits(post.getId()));
+
+        			// Get a DAO to look up member information
+            		MemberDAO memberDAO = DAOProvider.getDAO(MemberDAO.class);
+            		// Get the created by
+            		MemberDTO memberDTO = memberDAO.find(post.getEditedBy().getId());
+            		// Convert to bean
+            		Member member = memberConverter.convertPublic(memberDTO);
+            		// Assign it
+            		post.setEditedBy(member);
+        		}
+        	}
+        	
         	// Return response
         	return Response.status(200).entity(posts).build();
 		}
@@ -112,15 +145,27 @@ public final class PostsApiServiceImpl extends CommunityApiServiceImpl {
 	{
 		try {
 			// Authorize. May throw NotAuthorizedException
-			authorize(authorization);
+			AuthenticatedUser user = authorize(authorization);
 			
-			//TODO change this when opening up community 
-			if (!isAdmin())
+			if (!isOwnerOrAdmin(user.getUserId()))
 				return responseUtils.notAuthorizedError(1104L, null);
 			
 			// Only admins may create posts as html
 			if (post.getTextFormat() == Post.FormatEnum.html && !isAdmin())
 				throw new BadRequestException();
+			
+			// Get the DAO implementation
+        	ForumDAO forumDAO = DAOProvider.getDAO(ForumDAO.class);
+        	// Lookup the category
+        	ForumDTO forumDTO = forumDAO.find(post.getForumId());
+        	
+			// Get the DAO implementation
+	        CategoryDAO categoryDAO = DAOProvider.getDAO(CategoryDAO.class);
+	        // Lookup the category
+	        CategoryDTO categoryDTO = categoryDAO.find(forumDTO.getCategoryId());
+	        
+	        if(!categoryDTO.getIsPublic() && !isAdmin())
+	        	return responseUtils.notAuthorizedError(1104L, null);
 			
 			// Convert the post
         	PostDTO postDTO = postConverter.convert(post);
@@ -204,14 +249,31 @@ public final class PostsApiServiceImpl extends CommunityApiServiceImpl {
 			// TO-DO: Check that the user updating the post is the owner of the topic
 			
 			// Authorize. May throw NotAuthorizedException
-			authorize(authorization);
+			AuthenticatedUser user = authorize(authorization);
 			
-			// Posts may only be updated by admins or the member that created the post
-			if (!isAdmin() && post.getCreatedBy() != null) {
-				if (!isOwnerOrAdmin(post.getCreatedBy().getId()))
-					return responseUtils.notAuthorizedError(1004L, null);
+			TopicDAO topicDAO = DAOProvider.getDAO(TopicDAO.class);
+			// Get the DAO implementation
+			PostDAO postDAO = DAOProvider.getDAO(PostDAO.class);
+    		// Turn off autocommit so we can handle update and insert as one
+    		// single transaction
+    		postDAO.setAutoCommit(false);
+    		// Get the DAO implementation
+			VoteDAO voteDAO = DAOProvider.getDAO(VoteDAO.class);
+			
+			int topicCreatedById = topicDAO.find(post.getTopicId()).getCreatedById();
+			int postCreatedById = postDAO.find(post.getId()).getCreatedById();
+			
+			if (!action.equals("answered")) {
+				// Posts may only be updated by admins or the user that created it
+				if (!isOwnerOrAdmin(user.getUserId()) && (!isAdmin() && user.getUserId() != postCreatedById))
+					return responseUtils.notAuthorizedError(1104L, null);
+			} else {
+
+	        	//The creator of the topic which the post belongs to is able to update any post as answer
+				if (!isOwnerOrAdmin(user.getUserId()) && user.getUserId() != topicCreatedById)
+					return responseUtils.notAuthorizedError(1104L, null);
 			}
-			
+
 			// Only admins may create posts as html
 			if (post.getTextFormat() == Post.FormatEnum.html && !isAdmin()) {
 				// Create an error
@@ -240,31 +302,80 @@ public final class PostsApiServiceImpl extends CommunityApiServiceImpl {
 			}
 			
 			// TO-DO: If topic is closed or deleted, it can not be updated: check in db
-						
+			
 			// Convert the post
         	PostDTO postDTO = postConverter.convert(post);
-			// Get the DAO implementation
-        	PostDAO postDAO = DAOProvider.getDAO(PostDAO.class);
         	
         	Integer count = null;
         	
         	if (action.equals("answered")) {
         		// Mark the post as an answer. A trigger on the table
         		// will update the topic to set the answer to this post
-        		count = postDAO.markAsAnswer(postDTO);
+        		
+    			// Lookup the post
+    			PostDTO oldPostDTO = postDAO.find(id);
+    			
+    			Post oldPost = postConverter.convert(oldPostDTO);
+    			
+    			if(oldPost.getIsAnswer())
+    				return responseUtils.badRequest(1209L, null);
+        		
+        		try {
+        			// Write the changes to database
+        			count = postDAO.markAsAnswer(postDTO);
+        		}
+        		catch (Exception e) {
+    				postDAO.rollbackTransaction(true);
+    				throw e;
+    			}
         		
         		if (count == 0) // = Not found
         			return responseUtils.notFound(1002L, null);
+    			
+    			boolean hasVoted = false;
+    			
+    			List<VoteDTO> voteDTOs = voteDAO.findByPost(post.getId());
+    			
+    			for(VoteDTO voteDTO : voteDTOs) {
+    				if(voteDTO.getMemberId().equals(user.getUserId())) {
+    					hasVoted = true;
+    					break;
+    				}
+    			}
+    			
+    			// Can only vote once and cannot vote for own post
+    			if(!hasVoted && (oldPostDTO.getCreatedById() != user.getUserId())) {
+    				
+        			VoteDTO newVoteDTO = new VoteDTO();
+        			newVoteDTO.setPoints((short)1);
+        			newVoteDTO.setPostId(post.getId());
+        			newVoteDTO.setType(post.getType().name());
+        			
+        			// Force memberId from actual user
+        			newVoteDTO.setMemberId(user.getUserId());
+    				
+    				voteDAO.setAutoCommit(false);
+    				// Assign the same connection to this DAO
+    	        	voteDAO.setConnection(postDAO.getConnection());
+
+                	try {
+                		// Perform insert of vote
+                		voteDAO.insert(newVoteDTO);
+                	}
+                	catch (Exception e) {
+                		postDAO.rollbackTransaction(true);
+        				throw e;
+                	}
+    			}
+    			
+            	// Commit the transaction
+            	postDAO.commitTransaction(true);
         	}
         	else { // Post has been edited
         		// Get the current version
         		PostDTO currentVersion = postDAO.find(post.getId());
         		// Create a PostEdit version
         		PostEditDTO postEdit = createEditPost(currentVersion);
-        		
-        		// Turn off autocommit so we can handle update and insert as one
-        		// single transaction
-        		postDAO.setAutoCommit(false);
         		
         		// Set the edit date
         		postDTO.setEditDate(new Date());
@@ -308,8 +419,25 @@ public final class PostsApiServiceImpl extends CommunityApiServiceImpl {
             	postDAO.commitTransaction(true);
         	}
         	
+        	voteDAO = DAOProvider.getDAO(VoteDAO.class);
+			// Retrieve individual votes for this post
+			List<VoteDTO> voteDTOs = voteDAO.findByPost(post.getId());
+
+			List<Vote> votes = new ArrayList<Vote>();
+			for (VoteDTO voteDTO : voteDTOs) {
+				votes.add(voteConverter.convert(voteDTO));
+			}
+			
+			// Retrieve updated post to be able to send it as response
+			PostDTO newPostDTO = postDAO.find(post.getId());
+
+			Post newPost = generatePost(newPostDTO);
+			
+			// Add votes to post
+			newPost.setVotes(votes);
+        	
         	// Return updated result
-        	return Response.status(200).entity(generatePost(postDAO.find(post.getId()))).build();
+        	return Response.status(200).entity(newPost).build();
 		}
 		catch (NotAuthorizedException bre) {
 			return Response.status(Response.Status.UNAUTHORIZED)
@@ -336,17 +464,15 @@ public final class PostsApiServiceImpl extends CommunityApiServiceImpl {
 	{
 		try {
 			// Authorize. May throw NotAuthorizedException
-			authorize(authorization);
+			AuthenticatedUser user = authorize(authorization);
+			
+			PostDAO postDAO = DAOProvider.getDAO(PostDAO.class);
+			int postCreatedById = postDAO.find(id).getCreatedById();
 						
 			// Posts may only be updated by admins or the member that created the post
-			if (!isAdmin()) {
-				if (!isOwnerOrAdmin(id))
-					return responseUtils.notAuthorizedError(1004L, null);
-			}
-			
-			// Get the DAO implementation
-			PostDAO postDAO = DAOProvider.getDAO(PostDAO.class);
-			
+			if (!isOwnerOrAdmin(user.getUserId()) && (!isAdmin() && user.getUserId() != postCreatedById))
+				return responseUtils.notAuthorizedError(1104L, null);
+		
         	// Perform the delete
         	Integer count = postDAO.delete(id);
         	
@@ -389,13 +515,74 @@ public final class PostsApiServiceImpl extends CommunityApiServiceImpl {
 		}
 	}
 	
-	// Iteration 2
 	public Response createVote(String authorization, Long id, Vote vote) 
 		throws ClientErrorException 
 	{
-		return null;
+		try {
+			// Authorize. May throw NotAuthorizedException
+			AuthenticatedUser user = authorize(authorization);
+			
+			if (!isOwnerOrAdmin(user.getUserId()))
+				return responseUtils.notAuthorizedError(1104L, null);
+			
+			// Convert the vote
+			VoteDTO voteDTO = voteConverter.convert(vote);
+			// Get the DAO implementation
+			VoteDAO voteDAO = DAOProvider.getDAO(VoteDAO.class);
+			
+			// Force memberId from actual user
+			voteDTO.setMemberId(user.getUserId());
+			
+			// Default to 1 point
+			if(vote.getPoints() == null)
+				vote.setPoints((short)1);
+			
+			// Get the DAO implementation
+			PostDAO postDAO = DAOProvider.getDAO(PostDAO.class);
+			// Lookup the post
+			PostDTO oldPostDTO = postDAO.find(id);
+			
+			Post oldPost = postConverter.convert(oldPostDTO);
+			
+			boolean hasVoted = false;
+			for(Vote oldVote : oldPost.getVotes()) {
+				if(oldVote.getMemberId().equals(user.getUserId())) {
+					hasVoted = true;
+					break;
+				}
+			}
+			
+			// Can only vote once and cannot vote for own post
+			if(!hasVoted && (oldPostDTO.getCreatedById() != user.getUserId())) {
+				Long voteId = voteDAO.insert(voteDTO);
+				
+				voteDTO = voteDAO.find(voteId);
+
+	        	// Populate and return result
+	        	return Response.status(201).entity(voteConverter.convert(voteDTO)).build();
+			} else {
+				throw new BadRequestException();
+			}
+		}
+		catch (NotAuthorizedException bre) {
+			return Response.status(Response.Status.UNAUTHORIZED)
+					.entity(bre.getCause())
+					.build();
+		}
+		catch (BadRequestException bre) {
+			// Create an error
+			Error error = responseUtils.buildError(1206L, null);
+			// Return result
+			return Response.status(Response.Status.BAD_REQUEST)
+					.entity(error)
+					.build();
+		}
+		catch (Exception e) {
+			Response response = ResponseUtils.serverError(e);
+			throw new ServerErrorException(response);
+		}
 	}
-	
+
 	protected List<PostEdit> getEdits(Long postId) throws ServerErrorException {
 		try {
 			// Get the DAO implementation
@@ -413,7 +600,7 @@ public final class PostsApiServiceImpl extends CommunityApiServiceImpl {
         		// Get the created by
         		MemberDTO memberDTO = memberDAO.find(edit.getCreatedBy().getId());
         		// Convert to bean
-        		Member member = memberConverter.convert(memberDTO);
+        		Member member = memberConverter.convertPublic(memberDTO);
         		// Assign it
         		edit.setCreatedBy(member);
         	}
@@ -435,16 +622,16 @@ public final class PostsApiServiceImpl extends CommunityApiServiceImpl {
 		// Get the created by
 		MemberDTO memberDTO = memberDAO.find(post.getCreatedBy().getId());
 		// Convert to bean
-		Member member = memberConverter.convert(memberDTO);
+		Member member = memberConverter.convertPublic(memberDTO);
 		// Assign it
 		post.setCreatedBy(member);
-
-		// Retrieve dit information
+		
+		// Retrieve edit information
 		if (post.getNumberOfTimesEdited() > 0) {
 			// Get the created by
 			memberDTO = memberDAO.find(post.getEditedBy().getId());
 			// Convert to bean
-			member = memberConverter.convert(memberDTO);
+			member = memberConverter.convertPublic(memberDTO);
 			// Assign it
 			post.setEditedBy(member);
 			// Get the edits
