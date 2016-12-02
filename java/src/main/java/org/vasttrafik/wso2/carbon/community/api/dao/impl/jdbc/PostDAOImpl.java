@@ -33,7 +33,7 @@ public final class PostDAOImpl extends GenericDAO<PostDTO> implements PostDAO {
 		"with com_post_results as";
 	
 	private final static String SQL_SELECT_WITH_ROWNUM = 
-		"select com_id, com_topic_id, com_forum_id, com_category_id, com_type, com_text, com_text_format, a.com_created_date, com_created_by_id, com_comment_to_id, com_points_awarded, com_is_answer, com_edit_date, com_edited_by_id, com_edit_count, com_is_moderated, com_is_deleted, com_is_reported" + 
+		"select com_id, com_topic_id, com_forum_id, com_category_id, com_type, com_text, com_text_format, com_created_date, com_created_by_id, com_comment_to_id, com_points_awarded, com_is_answer, com_edit_date, com_edited_by_id, com_edit_count, com_is_moderated, com_is_deleted, com_is_reported" + 
 		" from com_post_results where row_num between ? and ?";
 	
 	private final static String SQL_FIND_BY_ID = 
@@ -54,11 +54,14 @@ public final class PostDAOImpl extends GenericDAO<PostDTO> implements PostDAO {
 	private final static String SQL_COUNT = 
 		"select count(*) from com_post where com_id = ?";
 	
-	private final static String SQL_ORDER_BY = 
+	private final static String SQL_ORDER_BY_EDIT_DATE = 
 		" order by com_edit_date desc";
+	
+	private final static String SQL_ORDER_BY_CREATED_DATE = 
+			" order by com_created_date desc";
 		
 	private final static String SQL_ORDER_BY_ROWNUM = 
-		", row_number() over (order by a.com_edit_date desc) as row_num";
+		", row_number() over (order by a.com_created_date desc) as row_num";
 	
 	private final static String SQL_ORDER_BY_ORDERING = 
 		", row_number() over (order by ordering asc) as row_num";
@@ -127,7 +130,7 @@ public final class PostDAOImpl extends GenericDAO<PostDTO> implements PostDAO {
 			}
 			else {
 				// Add the ORDER BY clause
-				sql += SQL_ORDER_BY;
+				sql += SQL_ORDER_BY_EDIT_DATE;
 			}
 				
 			// Get a connection
@@ -200,7 +203,7 @@ public final class PostDAOImpl extends GenericDAO<PostDTO> implements PostDAO {
 			}
 			else {
 				// Add the ORDER BY clause
-				sql += SQL_ORDER_BY;
+				sql += SQL_ORDER_BY_CREATED_DATE;
 			}
 			
 			// Get a connection
@@ -548,5 +551,6 @@ public final class PostDAOImpl extends GenericDAO<PostDTO> implements PostDAO {
 		columnMappings.put("text", "com_text");
 		columnMappings.put("category", "com_category_id");
 		columnMappings.put("forum", "com_forum_id");
+		columnMappings.put("type", "com_type");
 	}
 }

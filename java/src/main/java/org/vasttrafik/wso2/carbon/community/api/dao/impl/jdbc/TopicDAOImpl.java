@@ -196,33 +196,20 @@ public final class TopicDAOImpl extends GenericDAO<TopicDTO> implements TopicDAO
 		TopicDTO topic = null;
 			
 		try {
-			// The basic SELECT is just a list of columns
-			String sql = "SELECT *";
-			
-			if (offset != null) {
-				sql = "SELECT TOP (?) *";
-			}
-			
-			sql += " from com_topic_label_" + label + "_view a";
-			
-			// Check if pagination is required
-			if (offset != null)  {
-				
-				sql += " EXCEPT SELECT TOP (?) * from com_topic_label_" + label + "_view a";
-				
-			}
+
+			String sql = "select * from (select top (?) * from com_topic_label_" + label + "_view a ";
 			
 			if(!"popular".equalsIgnoreCase(label)) {
 				// Add the ORDER BY clause
 				sql +=  SQL_ORDER_BY;
 			}
+			
+			sql += ") x except " + sql + ") y";
 				
 			// Get a connection
 			getConnection();
 			// Prepare the statement
 			ps = conn.prepareStatement(sql); 
-			
-			log.debug(sql);
 				
 			// If we have an offset and a limit value to bind, specify the values
 			if (offset != null) {
@@ -232,12 +219,14 @@ public final class TopicDAOImpl extends GenericDAO<TopicDTO> implements TopicDAO
 				
 			// Execute the query
 			rs = ps.executeQuery();
-
+			
 			// Get the results
 			while (rs.next()) {
 				topic = new TopicDTO();
+				
 				// Populate the bean
 				populateBean(rs, topic);
+				
 				// Add the bean to the result list
 				topics.add(topic);
 			}

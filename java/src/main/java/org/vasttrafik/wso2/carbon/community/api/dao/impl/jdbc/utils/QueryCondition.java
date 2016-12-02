@@ -99,7 +99,7 @@ public class QueryCondition {
 		// which may be empty.
 		concatenation = parts[0];
 		// Split the rest of the string
-		parts = parts[1].split(",");
+		parts = parts[1].split(":");
 		
 		// There should be 2 or 3 parts
 		if (parts.length < 2 || parts.length > 3)

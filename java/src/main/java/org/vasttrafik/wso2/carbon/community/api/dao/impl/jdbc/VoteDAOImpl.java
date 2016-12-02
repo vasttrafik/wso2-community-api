@@ -29,6 +29,9 @@ public final class VoteDAOImpl extends GenericDAO<VoteDTO> implements VoteDAO {
 	
 	private final static String SQL_FIND_BY_ID = 
 		SQL_SELECT_LIST + " from com_vote a where com_id = ?";
+	
+	private final static String SQL_FIND_BY_POST = 
+			SQL_SELECT_LIST + " from com_vote a where com_post_id = ?";
 
 	private final static String SQL_INSERT = 
 		"insert into com_vote (com_post_id, com_type, com_member_id, com_points) values (?, ?, ?, ?)";
@@ -119,6 +122,55 @@ public final class VoteDAOImpl extends GenericDAO<VoteDTO> implements VoteDAO {
 			// If we have a member id to bind, specify the value
 			if (memberId != null)
 				setValue(ps, i++, memberId);
+			
+			// Execute the query
+			rs = ps.executeQuery();
+			
+			// Get the results
+			while (rs.next()) {
+				vote = new VoteDTO();
+				// Populate the bean
+				populateBean(rs, vote);
+				// Add the bean to the result list
+				votes.add(vote);
+			}
+		} 
+	    catch (SQLException e) {
+			log.error("Database error. VoteDAOImpl.findByTopicAndMember could not execute query." + e.getMessage(), e);
+			throw e;
+		} 
+	    finally {
+			closeAll();
+		}
+		
+		return votes;
+	}
+	
+	//----------------------------------------------------------------------
+	/**
+	 * Finds votes filtered by postId
+	 * @param postId The post id
+	 * @return A list of votes matching the criterias
+	 */
+	public List<VoteDTO> findByPost(Long postId) throws SQLException {
+		List<VoteDTO> votes = new ArrayList<VoteDTO>();
+		VoteDTO vote = null;
+		
+		try {
+			
+			// Get a connection
+			getConnection();
+			// Prepare the statement
+			ps = conn.prepareStatement(SQL_FIND_BY_POST); 
+							
+			// Variable needed to keep track of bind values¨
+			int i = 1;
+							
+			// Bind the category id value
+			setValue(ps, i, postId);
+			
+			// Execute the query
+			rs = ps.executeQuery();
 			
 			// Get the results
 			while (rs.next()) {
