@@ -447,14 +447,18 @@ public final class ForumsApiServiceImpl extends CommunityApiServiceImpl {
     {
 		try {
 			// Authorize. May throw NotAuthorizedException
-			authorize(authorization);
+			AuthenticatedUser user = authorize(authorization);
 			
 			// TO-DO: Check user is owner of watch
-			if (!isAdmin())
+			if (!isOwnerOrAdmin(user.getUserId()))
 				return responseUtils.notAuthorizedError(1104L, null);
 			
 			// Get the DAO implementation
 			ForumWatchDAO watchDAO = DAOProvider.getDAO(ForumWatchDAO.class);
+			
+			if (!(user.getUserId() == watchDAO.find(watchId).getMemberId()))
+				return responseUtils.notAuthorizedError(1104L, null);
+
 			// Delete the watch
 			Integer result = watchDAO.delete(watchId);
 			

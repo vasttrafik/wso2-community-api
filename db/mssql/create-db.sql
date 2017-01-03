@@ -934,6 +934,13 @@ AS
 		 FROM DELETED
 	 );
 	 
+	-- DELETE WATCHES FOR THIS TOPIC
+    DELETE FROM DBO.COM_TOPIC_WATCH
+	  WHERE COM_TOPIC_ID = (
+	   SELECT COM_ID
+		 FROM DELETED
+	 );
+	 
 	-- If this topic contained the last post
 	-- update the forum to make it correct
     UPDATE DBO.COM_FORUM

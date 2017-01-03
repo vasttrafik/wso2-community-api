@@ -9,6 +9,25 @@ public final class Watch  {
 	private String title = null;
 	private Integer forumId;
 	private Long topicId;
+	
+	private Forum forum;
+	private Topic topic;
+
+	public Forum getForum() {
+		return forum;
+	}
+
+	public void setForum(Forum forum) {
+		this.forum = forum;
+	}
+
+	public Topic getTopic() {
+		return topic;
+	}
+
+	public void setTopic(Topic topic) {
+		this.topic = topic;
+	}
 
 	/**
 	 * Watch id

@@ -20,7 +20,6 @@ import org.vasttrafik.wso2.carbon.community.api.impl.utils.CacheControl;
  * @author Lars Andersson
  *
  */
-@SuppressWarnings("unused")
 @Path("/members")
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
@@ -86,18 +85,18 @@ public final class Members  {
         return delegate.getFolders(authorization, id);
     }
     
-	/*
     @GET
     @Path("/{id}/watches")
     public Response getWatches(
     		@NotNull(message= "{assertion.notnull}") @HeaderParam("X-JWT-Assertion") final String authorization,
     		@PathParam("id") final Integer memberId,
+    		@QueryParam("setInfo") @DefaultValue("false") final boolean setInfo,
     		@QueryParam("offset") @Min(1) @DefaultValue("1") final Integer offset,
     		@QueryParam("limit") @Min(1) @Max(50) @DefaultValue("10") final Integer limit
     ) 
     	throws ClientErrorException 
     {
-        return delegate.getWatches(authorization, memberId, offset, limit);
+        return delegate.getWatches(authorization, memberId, setInfo, offset, limit);
     }
     
     @DELETE
@@ -110,6 +109,5 @@ public final class Members  {
     {
         return delegate.deleteWatches(authorization, id, watches);
     }
-    */
 }
 

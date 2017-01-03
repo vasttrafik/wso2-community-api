@@ -112,7 +112,6 @@ public final class Topics {
         return delegate.getVotes(authorization, topicId, memberId);
     }
     
-    /*
     @POST
     @Path("/{id}/watches")
     public Response postTopicWatch(
@@ -133,6 +132,5 @@ public final class Topics {
     {
         return delegate.deleteWatch(authorization, watchId);
     }
-    */
 }
 

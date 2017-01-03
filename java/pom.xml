@@ -4,7 +4,7 @@
 
 	<groupId>org.vasttrafik.se</groupId>
 	<artifactId>vt-community-api</artifactId>
-	<version>1.0.0</version>
+	<version>1.1.0</version>
 	<modelVersion>4.0.0</modelVersion>
 	<packaging>war</packaging>
 	<name>Västtrafik Community API</name>
