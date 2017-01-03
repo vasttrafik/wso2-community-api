@@ -3,6 +3,7 @@ package org.vasttrafik.wso2.carbon.community.api.impl;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
 
 import javax.ws.rs.BadRequestException;
@@ -30,13 +31,17 @@ import org.vasttrafik.wso2.carbon.community.api.dao.PostDAO;
 import org.vasttrafik.wso2.carbon.community.api.dao.PostEditDAO;
 import org.vasttrafik.wso2.carbon.community.api.dao.TopicDAO;
 import org.vasttrafik.wso2.carbon.community.api.dao.VoteDAO;
+import org.vasttrafik.wso2.carbon.community.api.dao.WatchDAO;
 import org.vasttrafik.wso2.carbon.community.api.dao.commons.DAOProvider;
+import org.vasttrafik.wso2.carbon.community.api.impl.utils.MailUtil;
 import org.vasttrafik.wso2.carbon.community.api.model.CategoryDTO;
 import org.vasttrafik.wso2.carbon.community.api.model.ForumDTO;
 import org.vasttrafik.wso2.carbon.community.api.model.MemberDTO;
 import org.vasttrafik.wso2.carbon.community.api.model.PostDTO;
 import org.vasttrafik.wso2.carbon.community.api.model.PostEditDTO;
+import org.vasttrafik.wso2.carbon.community.api.model.TopicDTO;
 import org.vasttrafik.wso2.carbon.community.api.model.VoteDTO;
+import org.vasttrafik.wso2.carbon.community.api.model.WatchDTO;
 
 /**
  * 
@@ -177,6 +182,41 @@ public final class PostsApiServiceImpl extends CommunityApiServiceImpl {
         	Long id = postDAO.insert(postDTO);
         	// Lookup the post to get the default values
         	postDTO = postDAO.find(id);
+        	
+        	// Trigger watches
+        	try {
+        		
+        		// Get the DAO implementation
+    			WatchDAO watchDAO = DAOProvider.getDAO(WatchDAO.class);
+        		
+    			List<WatchDTO> watches = watchDAO.findByForumOrTopic(postDTO.getForumId(), postDTO.getTopicId().intValue());
+    			
+    			if(!watches.isEmpty()) {
+    				
+    				// Get a DAO to look up member information
+            		MemberDAO memberDAO = DAOProvider.getDAO(MemberDAO.class);
+            		TopicDAO topicDAO = DAOProvider.getDAO(TopicDAO.class);
+            		
+            		TopicDTO topicDTO = topicDAO.find(postDTO.getTopicId());
+    				
+        			HashSet<String> emails = new HashSet<String>();
+        			for(WatchDTO watchDTO : watches) {
+        				
+        				// Don't trigger a watch email to the user creating the topic
+        				if(watchDTO.getMemberId() != user.getUserId()) {
+        					MemberDTO memberDTO = memberDAO.find(watchDTO.getMemberId());
+            				emails.add(memberDTO.getEmail());
+        				}
+        			}
+        			
+        			for(String email : emails) {
+        				MailUtil.sendWatchMailTopic(email, postDTO.getTopicId().intValue(), topicDTO.getSubject());
+        			}
+    			}
+        	} catch (Exception e) {
+        		// Do not interrupt handling if this section fails
+    			e.printStackTrace();
+        	}
 
         	// Populate and return result
         	return Response.status(201).entity(generatePost(postDTO)).build();

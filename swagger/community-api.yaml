@@ -767,6 +767,11 @@ paths:
       parameters:
         - $ref: '#/parameters/X-JWT-Assertion'
         - $ref: '#/parameters/id'
+        - name: setInfo
+          in: query
+          description: 'Indicates if topic and forum info should be included in the response (defaults to false)'
+          required: false
+          type: boolean          
         - name: offset
           $ref: '#/parameters/offset'
         - name: limit

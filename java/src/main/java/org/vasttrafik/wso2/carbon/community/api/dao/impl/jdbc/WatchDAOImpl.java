@@ -23,6 +23,9 @@ public final class WatchDAOImpl extends GenericDAO<WatchDTO> implements WatchDAO
 	
 	private static final Log log = LogFactory.getLog(WatchDAOImpl.class);
 	
+	private final static String SQL_SELECT =
+		"select com_id, com_forum_id, com_topic_id, com_member_id, com_title from com_watch_view";
+	
 	private final static String SQL_SELECT_WITH = 
 		"with com_watches_results as";
 	
@@ -47,7 +50,7 @@ public final class WatchDAOImpl extends GenericDAO<WatchDTO> implements WatchDAO
 	/**
 	 * Finds watches by member id
 	 * @param memberId The id of the member
-	 * @return the bean found or null if not found 
+	 * @return list of found watches
 	 */
 	public List<WatchDTO> findByMember(Integer memberId, Integer offset, Integer limit) throws SQLException {
 		List<WatchDTO> watches = new ArrayList<WatchDTO>();
@@ -107,6 +110,138 @@ public final class WatchDAOImpl extends GenericDAO<WatchDTO> implements WatchDAO
 			closeAll();
 		}
 			
+		return watches;
+	}
+	
+
+	/**
+	 * Finds watches by topic id
+	 * @param topicId The id of the topic
+	 * @return list of found watches
+	 */
+	@Override
+	public List<WatchDTO> findByTopic(Integer topicId) throws SQLException {
+
+		List<WatchDTO> watches = new ArrayList<WatchDTO>();
+		WatchDTO watch = null;
+
+		try {
+
+			String sql = SQL_SELECT + " where com_topic_id = ?";
+
+			// Get a connection
+			getConnection();
+			// Prepare the statement
+			ps = conn.prepareStatement(sql);
+
+			setValue(ps, 1, topicId);
+
+			// Execute the query
+			rs = ps.executeQuery();
+
+			// Get the results
+			while (rs.next()) {
+				watch = new WatchDTO();
+				// Populate the bean
+				populateBean(rs, watch);
+				// Add the bean to the result list
+				watches.add(watch);
+			}
+		} catch (SQLException e) {
+			log.error("Database error. WatchDAOImpl.findByTopic could not execute query." + e.getMessage(), e);
+			throw e;
+		} finally {
+			closeAll();
+		}
+
+		return watches;
+	}
+
+	/**
+	 * Finds watches by forum id
+	 * @param forumId The id of the forum
+	 * @return list of found watches
+	 */
+	@Override
+	public List<WatchDTO> findByForum(Integer forumId) throws SQLException {
+
+		List<WatchDTO> watches = new ArrayList<WatchDTO>();
+		WatchDTO watch = null;
+
+		try {
+
+			String sql = SQL_SELECT + " where com_forum_id = ?";
+
+			// Get a connection
+			getConnection();
+			// Prepare the statement
+			ps = conn.prepareStatement(sql);
+
+			setValue(ps, 1, forumId);
+
+			// Execute the query
+			rs = ps.executeQuery();
+
+			// Get the results
+			while (rs.next()) {
+				watch = new WatchDTO();
+				// Populate the bean
+				populateBean(rs, watch);
+				// Add the bean to the result list
+				watches.add(watch);
+			}
+		} catch (SQLException e) {
+			log.error("Database error. WatchDAOImpl.findByForum could not execute query." + e.getMessage(), e);
+			throw e;
+		} finally {
+			closeAll();
+		}
+
+		return watches;
+	}
+	
+	/**
+	 * Finds watches by forum id or topic id
+	 * @param forumId The id of the forum
+	 * @param topicId The id of the topic
+	 * @return list of found watches
+	 */
+	@Override
+	public List<WatchDTO> findByForumOrTopic(Integer forumId, Integer topicId) throws SQLException {
+
+		List<WatchDTO> watches = new ArrayList<WatchDTO>();
+		WatchDTO watch = null;
+
+		try {
+
+			String sql = SQL_SELECT + " where com_forum_id = ? OR com_topic_id = ?";
+
+			// Get a connection
+			getConnection();
+			// Prepare the statement
+			ps = conn.prepareStatement(sql);
+
+			setValue(ps, 1, forumId);
+			setValue(ps, 2, topicId);
+
+			// Execute the query
+			rs = ps.executeQuery();
+
+			// Get the results
+			while (rs.next()) {
+				watch = new WatchDTO();
+				// Populate the bean
+				populateBean(rs, watch);
+				// Add the bean to the result list
+				watches.add(watch);
+			}
+		} catch (SQLException e) {
+			log.error("Database error. WatchDAOImpl.findByForumOrTopic could not execute query." + e.getMessage(), e);
+			throw e;
+		} finally {
+			closeAll();
+		}
+
 		return watches;
 	}
 

@@ -93,7 +93,6 @@ public final class Forums {
         return delegate.getTopics(ifModifiedSince, forumId, offset, limit);
     }
     
-    /*
     @POST
     @Path("/{id}/watches")
     public Response postWatch(
@@ -116,6 +115,5 @@ public final class Forums {
     {
         return delegate.deleteWatch(authorization, watchId);
     }
-    */
 }
 

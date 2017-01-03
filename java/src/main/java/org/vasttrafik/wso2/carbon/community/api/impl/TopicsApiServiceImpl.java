@@ -3,6 +3,7 @@ package org.vasttrafik.wso2.carbon.community.api.impl;
 import java.sql.SQLIntegrityConstraintViolationException;
 import java.text.ParseException;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 import javax.ws.rs.BadRequestException;
@@ -40,7 +41,9 @@ import org.vasttrafik.wso2.carbon.community.api.dao.PostEditDAO;
 import org.vasttrafik.wso2.carbon.community.api.dao.TopicDAO;
 import org.vasttrafik.wso2.carbon.community.api.dao.TopicWatchDAO;
 import org.vasttrafik.wso2.carbon.community.api.dao.VoteDAO;
+import org.vasttrafik.wso2.carbon.community.api.dao.WatchDAO;
 import org.vasttrafik.wso2.carbon.community.api.dao.commons.DAOProvider;
+import org.vasttrafik.wso2.carbon.community.api.impl.utils.MailUtil;
 import org.vasttrafik.wso2.carbon.community.api.model.CategoryDTO;
 import org.vasttrafik.wso2.carbon.community.api.model.ForumDTO;
 import org.vasttrafik.wso2.carbon.community.api.model.MemberDTO;
@@ -50,6 +53,7 @@ import org.vasttrafik.wso2.carbon.community.api.model.PostEditDTO;
 import org.vasttrafik.wso2.carbon.community.api.model.TopicDTO;
 import org.vasttrafik.wso2.carbon.community.api.model.TopicWatchDTO;
 import org.vasttrafik.wso2.carbon.community.api.model.VoteDTO;
+import org.vasttrafik.wso2.carbon.community.api.model.WatchDTO;
 
 /**
  * 
@@ -255,7 +259,45 @@ public class TopicsApiServiceImpl extends CommunityApiServiceImpl {
         	
         	// Commit the transaction
         	topicDAO.commitTransaction(true);
-        	// Get the created topic
+        	
+        	// Trigger watches
+        	try {
+        		
+        		// Get the DAO implementation
+    			WatchDAO watchDAO = DAOProvider.getDAO(WatchDAO.class);
+
+    			List<WatchDTO> watches = watchDAO.findByForum(forumDTO.getId());
+    			
+    			if(!watches.isEmpty()) {
+    				
+    				// Get a DAO to look up member information
+            		MemberDAO memberDAO = DAOProvider.getDAO(MemberDAO.class);
+        			for(WatchDTO watchDTO : watches) {
+        				
+        				// Don't trigger a watch email to the user creating the topic
+        				if(watchDTO.getMemberId() != user.getUserId()) {
+            				MemberDTO memberDTO = memberDAO.find(watchDTO.getMemberId());
+            				MailUtil.sendWatchMailForum(memberDTO.getEmail(), topicDTO.getForumId().intValue(), forumDTO.getName(), topicId.intValue(), topicDTO.getSubject());
+        				}
+        			}
+    			}
+    			
+    			// Create a watch for the user creating the topic
+    			
+    			// Create the DTO
+    			TopicWatchDTO watchDTO = new TopicWatchDTO();
+    			watchDTO.setTopicId(topicId);
+    			watchDTO.setMemberId(user.getUserId());
+    			
+    			// Create watch
+    			// Get the DAO implementation
+    			TopicWatchDAO topicWatchDAO = DAOProvider.getDAO(TopicWatchDAO.class);
+    			topicWatchDAO.insert(watchDTO);
+    			
+        	} catch (Exception e) {
+        		// Do not interrupt handling if this section fails
+    			e.printStackTrace();
+        	}
         	
         	return Response.status(201).entity(getTopic(topicId, true).getEntity()).build();
 		}
@@ -402,8 +444,37 @@ public class TopicsApiServiceImpl extends CommunityApiServiceImpl {
         		count = topicDAO.updateSubject(user, topicDTO);
         	}
         	else if (action.equals("close")) { // Topic is being closed
+        		
+        		// Only admins can close topics
+        		if(!isAdmin())
+        			return responseUtils.notAuthorizedError(1104L, null);
+        		
+        		topicDTO.setClosedById(user.getUserId());
+        		topicDTO.setClosedDate(new Date());
+        		
         		// TO-DO: Check required attributes
             	count = topicDAO.closeTopic(topicDTO);
+            	
+            	// Get the DAO implementation
+            	MemberDAO memberDAO = DAOProvider.getDAO(MemberDAO.class);
+            	
+            	MemberDTO memberDTO = memberDAO.find(user.getUserId());
+            	
+        		Member member = new MemberConverter().convertPublic(memberDTO);
+        		
+        		// Get the DAO implementation
+                MemberRankingDAO rankingDAO = DAOProvider.getDAO(MemberRankingDAO.class);
+        		
+        		List<MemberRankingDTO> rankingDTOs = rankingDAO.findByMember(member.getId());
+        		// Convert to bean
+            	MemberRankingConverter converter = new MemberRankingConverter();
+        		List<MemberRanking> rankings = converter.convert(rankingDTOs);
+            	// Assign the value
+            	member.setRankings(rankings);
+        		
+        		// Assign the member to the topic
+        		topic.setClosedBy(member);
+        		topic.setClosedDate(new Date());
         	}
         	else
         		count = topicDAO.update(topicDTO);
@@ -698,12 +769,14 @@ public class TopicsApiServiceImpl extends CommunityApiServiceImpl {
     {
 		try {
 			// Authorize. May throw NotAuthorizedException
-			authorize(authorization);
-						
-			// TO-DO: Check user is owner of watch
+			AuthenticatedUser user = authorize(authorization);
 			
 			// Get the DAO implementation
 			TopicWatchDAO watchDAO = DAOProvider.getDAO(TopicWatchDAO.class);
+			
+			if (!isOwnerOrAdmin(user.getUserId()) && !(user.getUserId() == watchDAO.find(watchId).getMemberId()))
+				return responseUtils.notAuthorizedError(1104L, null);
+
 			// Delete the watch
 			Integer result = watchDAO.delete(watchId);
 			
