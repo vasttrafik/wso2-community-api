@@ -73,6 +73,18 @@ public final class Members  {
         return delegate.updateMember(authorization, id, member);
     }
 	
+	@DELETE
+    @Path("/{id}")
+    @CacheControl("no-cache")
+    public Response deleteMember(
+    		@NotNull(message= "{assertion.notnull}") @HeaderParam("X-JWT-Assertion") final String authorization,
+    		@PathParam("id") final Integer id
+    ) 
+    	throws ClientErrorException 
+	{
+        return delegate.deleteMember(authorization, id);
+    }
+	
 	@GET
     @Path("/{id}/folders")
     @CacheControl("no-cache")

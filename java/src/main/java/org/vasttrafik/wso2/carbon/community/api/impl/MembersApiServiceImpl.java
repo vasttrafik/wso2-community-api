@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Random;
 import java.util.Set;
 
 import javax.ws.rs.BadRequestException;
@@ -213,6 +214,59 @@ public final class MembersApiServiceImpl extends CommunityApiServiceImpl {
 			throw new ServerErrorException(response);
 		}
 	}
+	
+	/**
+	 * Deletes a member profile. (Actually renames member to remove all linkable traces to specific user).
+	 * 
+	 * @param authorization
+	 * @param id
+	 *            The id of the member profile
+	 * @return OK response
+	 * @throws ServerErrorException
+	 */
+	public Response deleteMember(String authorization, Integer memberId) throws ServerErrorException {
+		try {
+			// Authorize. May throw NotAuthorizedException
+			authorize(authorization);
+
+			// Member info can only be obtained by an admin or the member
+			if (!isAdmin() && !isOwnerOrAdmin(memberId))
+				return responseUtils.notAuthorizedError(1104L, null);
+
+			// Get the DAO implementation
+			MemberDAO memberDAO = DAOProvider.getDAO(MemberDAO.class);
+			// Lookup the member
+			MemberDTO memberDTO = memberDAO.find(memberId);
+
+			if (memberDTO != null) {
+				
+				memberDTO.setUserName("Deleteduser" + memberDTO.getId());
+				memberDTO.setEmail("deleted@user.com");
+				memberDTO.setSignature("Borttagen användare");
+				memberDTO.setGravatarEmail(null);
+				memberDTO.setUseGravatar(false);
+				memberDTO.setStatus("deleted");
+				
+				Integer count = memberDAO.update(memberDTO);
+
+				// Check result
+				if (count == 0) // = Not found
+					return responseUtils.notFound(1002L, null);
+				
+			} else {
+				return responseUtils.notFound(1002L, null);
+			}
+
+			// Return result
+			return Response.status(200).build();
+
+		} catch (NotAuthorizedException bre) {
+			return Response.status(Response.Status.UNAUTHORIZED).entity(bre.getCause()).build();
+		} catch (Exception e) {
+			Response response = ResponseUtils.serverError(e);
+			throw new ServerErrorException(response);
+		}
+	}
 
 	/**
 	 * Updates a member profile
@@ -240,7 +294,7 @@ public final class MembersApiServiceImpl extends CommunityApiServiceImpl {
 			if (!isAdmin() && !validSignature(member.getSignature()))
 				return responseUtils.badRequest(1207L, null);
 
-			// Convert the category
+			// Convert the member
 			MemberDTO memberDTO = memberConverter.convert(member);
 			// Get the DAO implementation
 			MemberDAO memberDAO = DAOProvider.getDAO(MemberDAO.class);
