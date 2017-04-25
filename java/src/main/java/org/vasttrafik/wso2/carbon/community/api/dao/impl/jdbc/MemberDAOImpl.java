@@ -38,7 +38,7 @@ public final class MemberDAOImpl extends GenericDAO<MemberDTO> implements Member
 		"insert into com_member (com_id, com_user_name, com_email, com_show_email, com_show_rankings, com_signature, com_use_gravatar, com_gravatar_email, com_accept_all_msg, com_notify_email, com_notify_message, com_notify_text) values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
 
 	private final static String SQL_UPDATE = 
-		"update com_member set com_email = ?, com_status = ?, com_show_email = ?, com_show_rankings = ?, com_signature = ?, com_use_gravatar = ?, com_gravatar_email = ?, com_accept_all_msg = ?, com_notify_email = ?, com_notify_message = ?, com_notify_text = ? where com_id = ?";
+		"update com_member set com_user_name = ?, com_email = ?, com_status = ?, com_show_email = ?, com_show_rankings = ?, com_signature = ?, com_use_gravatar = ?, com_gravatar_email = ?, com_accept_all_msg = ?, com_notify_email = ?, com_notify_message = ?, com_notify_text = ? where com_id = ?";
 
 	private final static String SQL_DELETE = 
 		"delete from com_member where com_id = ?";
@@ -295,7 +295,7 @@ public final class MemberDAOImpl extends GenericDAO<MemberDTO> implements Member
 		//--- Set data from ResultSet to Bean attributes
 		memberDTO.setId(rs.getInt("com_id")); 							// java.lang.Integer
 		if (rs.wasNull()) { memberDTO.setId(null); }; 					// not primitive number => keep null value if any
-		memberDTO.setEmail(rs.getString("com_user_name")); 				// java.lang.String
+		memberDTO.setUserName(rs.getString("com_user_name")); 				// java.lang.String
 		memberDTO.setEmail(rs.getString("com_email")); 					// java.lang.String
 		memberDTO.setStatus(rs.getString("com_status")); 				// java.lang.String
 		if (rs.wasNull()) { memberDTO.setStatus(null); }; 				// not primitive number => keep null value if any
@@ -340,6 +340,7 @@ public final class MemberDAOImpl extends GenericDAO<MemberDTO> implements Member
 	@Override
 	protected void setValuesForUpdate(PreparedStatement ps, int i, MemberDTO memberDTO) throws SQLException {
 		//--- Set DATA from bean to PreparedStatement (SQL "SET x=?, y=?, ...")
+		setValue(ps, i++, memberDTO.getUserName()) ; 						// "com_user_name" : java.lang.String
 		setValue(ps, i++, memberDTO.getEmail()) ; 						// "com_email" : java.lang.String
 		setValue(ps, i++, memberDTO.getStatus()) ; 						// "com_status" : java.lang.String
 		setValue(ps, i++, memberDTO.getShowEmail()) ; 					// "com_show_email" : java.lang.Boolean
