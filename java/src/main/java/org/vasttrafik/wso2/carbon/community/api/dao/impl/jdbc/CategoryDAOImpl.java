@@ -32,7 +32,7 @@ public final class CategoryDAOImpl extends GenericDAO<CategoryDTO> implements Ca
 		"insert into com_category (com_name, com_is_public, com_image_url) values (?, ?, ?)";
 
 	private final static String SQL_UPDATE = 
-		"update com_category set com_name = ?, com_is_public = ?, com_image_url = ? where com_id = ?";
+		"update com_category set com_name = ?, com_image_url = ? where com_id = ?";
 
 	private final static String SQL_DELETE = 
 		"delete from com_category where com_id = ?";
@@ -285,7 +285,7 @@ public final class CategoryDAOImpl extends GenericDAO<CategoryDTO> implements Ca
 	protected void setValuesForUpdate(PreparedStatement ps, int i, CategoryDTO categoryDTO) throws SQLException {
 		//--- Set DATA from bean to PreparedStatement (SQL "SET x=?, y=?, ...")
 		setValue(ps, i++, categoryDTO.getName()); 				// "com_name" : java.lang.String
-		setValue(ps, i++, categoryDTO.getIsPublic()); 			// "com_is_public" : java.lang.Byte
+		//setValue(ps, i++, categoryDTO.getIsPublic()); 			// "com_is_public" : java.lang.Byte
 		setValue(ps, i++, categoryDTO.getImageUrl()); 			// "com_image_url" : java.lang.String
 		//--- Set PRIMARY KEY from bean to PreparedStatement (SQL "WHERE key=?, ...")
 		setValue(ps, i++, categoryDTO.getId()); 				// "com_id" : java.lang.Integer
