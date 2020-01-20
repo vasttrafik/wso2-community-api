@@ -1,6 +1,7 @@
 package org.vasttrafik.wso2.carbon.community.api.impl.utils;
 
 import javax.mail.*;
+import javax.mail.Authenticator;
 import javax.mail.internet.*;
 
 import org.apache.axis2.context.ConfigurationContext;
@@ -26,7 +27,8 @@ public class MailUtil {
 			transportProperties = loadTransportProperties();
 			
 			// Get the default Session object.
-		    session = Session.getDefaultInstance(transportProperties);
+			Authenticator auth = new SMTPAuthenticator(transportProperties);
+		    session = Session.getInstance(transportProperties, auth);
 		    
 		    ClassLoader classLoader = MailUtil.class.getClassLoader();
 			File file = new File(classLoader.getResource("watch.template").getFile());
