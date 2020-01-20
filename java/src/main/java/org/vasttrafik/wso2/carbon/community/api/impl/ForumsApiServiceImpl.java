@@ -456,9 +456,9 @@ public final class ForumsApiServiceImpl extends CommunityApiServiceImpl {
 			// Get the DAO implementation
 			ForumWatchDAO watchDAO = DAOProvider.getDAO(ForumWatchDAO.class);
 			
-			if (!(user.getUserId() == watchDAO.find(watchId).getMemberId()))
+			if (!(user.getUserId().equals(watchDAO.find(watchId).getMemberId())))
 				return responseUtils.notAuthorizedError(1104L, null);
-
+			
 			// Delete the watch
 			Integer result = watchDAO.delete(watchId);
 			

@@ -2,9 +2,9 @@ package org.vasttrafik.wso2.carbon.community.api.impl;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Random;
 import java.util.Set;
 
 import javax.ws.rs.BadRequestException;
@@ -14,6 +14,8 @@ import javax.ws.rs.ServerErrorException;
 import javax.ws.rs.core.Response;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.vasttrafik.wso2.carbon.common.api.beans.AuthenticatedUser;
 import org.vasttrafik.wso2.carbon.common.api.beans.Error;
 import org.vasttrafik.wso2.carbon.common.api.utils.ResponseUtils;
@@ -54,6 +56,8 @@ public final class MembersApiServiceImpl extends CommunityApiServiceImpl {
 	 * Member converter
 	 */
 	private MemberConverter memberConverter = new MemberConverter();
+
+	private static final Log log = LogFactory.getLog(MembersApiServiceImpl.class);
 
 	/**
 	 * Auto-complete method to search for members
@@ -374,6 +378,9 @@ public final class MembersApiServiceImpl extends CommunityApiServiceImpl {
 				ForumConverter forumConverter = new ForumConverter();
 				MemberRankingConverter converter = new MemberRankingConverter();
 
+				// When a topic or forum is deleted, the watches are still active, but not visible when looking up info
+				List<Watch> removeWatches = new ArrayList<Watch>();
+				
 				for (Watch watch : watches) {
 
 					if (watch.getForumId() != null) {
@@ -381,7 +388,8 @@ public final class MembersApiServiceImpl extends CommunityApiServiceImpl {
 
 						// Check for not found, throw error
 						if (forumDTO == null) {
-							return responseUtils.notFound(1002L, null);
+							log.warn("Watch with id: " + watch.getId() + " has a Forum with id: " + watch.getForumId() + " found in watch, but not found when looking it up");
+							removeWatches.add(watch); // Forum deleted
 						} else {
 							// Convert to bean
 							Forum forum = forumConverter.convert(forumDTO);
@@ -418,7 +426,8 @@ public final class MembersApiServiceImpl extends CommunityApiServiceImpl {
 
 						// Check for not found, throw error
 						if (topicDTO == null) {
-							return responseUtils.notFound(1002L, null);
+							log.warn("Watch with id: " + watch.getId() + " has a Topic with id: " + watch.getTopicId() + " found in watch, but not found when looking it up");
+							removeWatches.add(watch); // Topic deleted
 						} else {
 							// Convert to bean
 							Topic topic = topicConverter.convert(topicDTO);
@@ -498,6 +507,9 @@ public final class MembersApiServiceImpl extends CommunityApiServiceImpl {
 					}
 
 				}
+				
+				// Remove all non found watches
+				watches.removeAll(removeWatches);
 			}
 
 			// Return result
