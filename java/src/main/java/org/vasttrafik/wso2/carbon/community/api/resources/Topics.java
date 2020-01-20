@@ -26,6 +26,7 @@ public final class Topics {
 	
 	private final TopicsApiServiceImpl delegate = new TopicsApiServiceImpl();
 	
+	@SuppressWarnings("unused")
 	private static final Log log = LogFactory.getLog(Topics.class);
 
     @GET
@@ -49,7 +50,6 @@ public final class Topics {
     ) 
     	throws ClientErrorException 
     {
-    	log.error("postTopic");
         return delegate.createTopic(authorization, topic);
     }
     

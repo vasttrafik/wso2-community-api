@@ -104,7 +104,7 @@ public final class Members  {
     		@PathParam("id") final Integer memberId,
     		@QueryParam("setInfo") @DefaultValue("false") final boolean setInfo,
     		@QueryParam("offset") @Min(1) @DefaultValue("1") final Integer offset,
-    		@QueryParam("limit") @Min(1) @Max(50) @DefaultValue("10") final Integer limit
+    		@QueryParam("limit") @Min(1) @Max(50) @DefaultValue("30") final Integer limit
     ) 
     	throws ClientErrorException 
     {
